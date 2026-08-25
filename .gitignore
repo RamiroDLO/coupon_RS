@@ -1,6 +1,9 @@
 # Raw data (large CSVs, not tracked in git)
 Data/
 
+# Generated outputs
+artifacts/
+
 # Jupyter
 .ipynb_checkpoints/
 *.ipynb_checkpoints
