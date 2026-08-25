@@ -1,7 +1,6 @@
 # coupon_RS
 
-Capstone project for the Recommender Systems course (Master Applied Data Science and AI) — a coupon/targeting
-recommender built on the Dunnhumby **"The Complete Journey"** household-panel grocery dataset.
+Create a coupon/targeting recommender built on the Dunnhumby **"The Complete Journey"** grocery dataset.
 
 ## Repository structure
 
@@ -17,9 +16,8 @@ coupon_RS/
 
 ## Data
 
-The `Data/` folder is intentionally **not** tracked in this repository (see `.gitignore`) — the raw CSVs
-are large (the transaction and causal-data files alone are several hundred MB) and are excluded to keep the
-repo lightweight.
+The `Data/` folder is **not** tracked in this repository (see `.gitignore`) — the raw CSVs
+are large and are excluded to keep the repo light.
 
 To reproduce the notebooks, download the Dunnhumby "The Complete Journey" dataset and place the CSVs in a
 local `Data/` folder at the repo root:
