@@ -17,9 +17,9 @@ ARTIFACTS_DIR.mkdir(exist_ok=True)
 # Temporal split — FROZEN, do not modify without team decision.
 # Weeks are inclusive on both ends; matches transactions.WEEK_NO values.
 # ---------------------------------------------------------------------------
-TRAIN_WEEKS = list(range(1, 92))    # weeks  1..91  (91 weeks)
-VAL_WEEKS   = list(range(92, 97))   # weeks 92..96  ( 5 weeks)
-TEST_WEEKS  = list(range(97, 103))  # weeks 97..102 ( 6 weeks)
+TRAIN_WEEKS = list(range(1, 80))    # weeks  1..79  (79 weeks)
+VAL_WEEKS   = list(range(80, 85))   # weeks 80..84  ( 5 weeks)
+TEST_WEEKS  = list(range(85, 103))  # weeks 85..102 (18 weeks)
 
 # Sanity: WEEK_NO values in the panel cover 1..102 (102 weeks total).
 

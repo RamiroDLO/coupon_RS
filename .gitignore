@@ -27,3 +27,6 @@ env/
 Thumbs.db
 .vscode/
 .idea/
+
+# Consolidation staging area (see PROJECT.md)
+_to_delete/
