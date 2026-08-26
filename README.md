@@ -19,6 +19,8 @@ coupon_RS/
 The `Data/` folder is **not** tracked in this repository (see `.gitignore`) — the raw CSVs
 are large and are excluded to keep the repo light.
 
+The dataset is available on Kaggle: https://www.kaggle.com/datasets/frtgnn/dunnhumby-the-complete-journey/data
+
 To reproduce the notebooks, download the Dunnhumby "The Complete Journey" dataset and place the CSVs in a
 local `Data/` folder at the repo root:
 
