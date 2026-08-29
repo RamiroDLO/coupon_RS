@@ -30,3 +30,6 @@ Thumbs.db
 
 # Consolidation staging area (see PROJECT.md)
 _to_delete/
+
+# Claude Code — local settings (machine-specific paths)
+.claude/
