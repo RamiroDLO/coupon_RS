@@ -39,9 +39,13 @@ class PurchaseTask:
     ground_truth: dict[int, set[int]]            # hh -> candidate products bought in test
     hh_eval: list[int]                           # households with >=1 ground-truth product
     hh_train_products: dict[int, list[int]]      # hh -> candidate products bought in train, recent first
-    hh_tier: dict[int, str]                      # hh -> "light" | "mid" | "heavy" (trip-count terciles)
+    hh_train_freq: dict[int, list[int]]          # hh -> same products, most-often-bought first
+    hh_tier: dict[int, str]                      # hh -> "light" | "mid" | "heavy" (trip-count terciles; for stratified reporting)
+    hh_rfm: dict[int, str]                       # hh -> RFM value tier "v1".."v5" (v5 = best customers)
     popularity: list[int]                        # candidate products, most-purchased in train first
-    segment_popularity: dict[str, list[int]]     # tier -> candidate products ranked within that tier
+    trending: list[int]                          # popularity with exponential recency decay (~30-day half-life)
+    wilson: list[int]                            # candidates ranked by Wilson lower bound of adoption rate
+    rfm_popularity: dict[str, list[int]]         # RFM tier -> candidate products ranked within that tier
     product_commodity: dict[int, str]            # candidate product -> COMMODITY_DESC
     hh_commodity_spend: pd.Series                # (hh, commodity) -> train SALES_VALUE
     meta: dict = field(default_factory=dict)
@@ -80,8 +84,11 @@ def build_purchase_task(
     )
     hh_eval = sorted(int(h) for h in ground_truth)
 
-    # --- per-household training history (unique, most-recent first) ---
+    # --- per-household training history ---
+    #   hh_train_products : most-recent purchase first
+    #   hh_train_freq     : most-often bought first (the repeat-purchase signal)
     hh_train_products: dict[int, list[int]] = {}
+    hh_train_freq: dict[int, list[int]] = {}
     tr = train_e.sort_values(["household_key", "DAY"], ascending=[True, False])
     for hh, grp in tr.groupby("household_key"):
         seen, seen_set = [], set()
@@ -90,13 +97,32 @@ def build_purchase_task(
                 seen.append(p)
                 seen_set.add(p)
         hh_train_products[int(hh)] = seen
+        freq = grp["PRODUCT_ID"].astype(int).value_counts()          # count, ties broken by recency
+        hh_train_freq[int(hh)] = [int(p) for p in freq.index]
 
-    # --- activity tier: trip-count terciles over every household in the panel ---
+    # --- activity tier: trip-count terciles (used only for stratified reporting) ---
     trips = purchases.groupby("household_key")["BASKET_ID"].nunique()
-    tier_cat = pd.qcut(trips, 3, labels=["light", "mid", "heavy"])
-    hh_tier = {int(h): str(t) for h, t in tier_cat.items()}
+    hh_tier = {int(h): str(t) for h, t in pd.qcut(trips, 3, labels=["light", "mid", "heavy"]).items()}
 
-    # --- global popularity of candidate products (train purchase-line count) ---
+    # --- RFM household segments (training window) ---
+    #   Recency  = days since the household's last trip (smaller is better -> quintile 5)
+    #   Frequency = number of distinct trips
+    #   Monetary = total spend
+    #   value tier = quintiles of (R + F + M), v5 = best customers.
+    end_day = int(train["DAY"].max())
+    rfm = train.groupby("household_key").agg(
+        recency=("DAY", lambda d: end_day - d.max()),
+        frequency=("BASKET_ID", "nunique"),
+        monetary=("SALES_VALUE", "sum"),
+    )
+    r_q = pd.qcut(rfm["recency"].rank(method="first"),   5, labels=[5, 4, 3, 2, 1]).astype(int)
+    f_q = pd.qcut(rfm["frequency"].rank(method="first"), 5, labels=[1, 2, 3, 4, 5]).astype(int)
+    m_q = pd.qcut(rfm["monetary"].rank(method="first"),  5, labels=[1, 2, 3, 4, 5]).astype(int)
+    value_tier = pd.qcut((r_q + f_q + m_q).rank(method="first"), 5,
+                         labels=["v1", "v2", "v3", "v4", "v5"])
+    hh_rfm = {int(h): str(t) for h, t in value_tier.items()}
+
+    # --- rung 2: global popularity of candidate products (train purchase-line count) ---
     counts = (
         train_e.groupby("PRODUCT_ID").size()
         .reindex(candidate_products, fill_value=0)
@@ -104,17 +130,44 @@ def build_purchase_task(
     )
     popularity = [int(p) for p in counts.index]
 
-    # --- popularity within each activity tier ---
-    train_e_tier = train_e.assign(tier=train_e["household_key"].map(hh_tier))
-    segment_popularity: dict[str, list[int]] = {}
-    for tier in ("light", "mid", "heavy"):
+    # --- rung 4: trending = recency-weighted popularity (exp. decay, ~30-day half-life) ---
+    decay = np.exp(-np.log(2) * (end_day - train_e["DAY"].to_numpy()) / 30.0)
+    trend = (
+        pd.Series(decay, index=train_e["PRODUCT_ID"].to_numpy())
+        .groupby(level=0).sum()
+        .reindex(candidate_products, fill_value=0.0)
+        .sort_values(ascending=False)
+    )
+    trending = [int(p) for p in trend.index]
+
+    # --- rung 5: uncertainty-aware = Wilson 95% lower bound on each product's
+    #     adoption rate (distinct buyers / all households). Down-weights products
+    #     bought heavily by only a handful of households. ---
+    n_hh = int(purchases["household_key"].nunique())
+    buyers = (
+        train_e.groupby("PRODUCT_ID")["household_key"].nunique()
+        .reindex(candidate_products, fill_value=0)
+        .to_numpy(dtype=float)
+    )
+    p_hat = buyers / n_hh
+    z = 1.96
+    denom = 1.0 + z ** 2 / n_hh
+    centre = p_hat + z ** 2 / (2 * n_hh)
+    margin = z * np.sqrt(p_hat * (1 - p_hat) / n_hh + z ** 2 / (4 * n_hh ** 2))
+    wilson_lb = (centre - margin) / denom
+    wilson = [int(candidate_products[i]) for i in np.argsort(-wilson_lb)]
+
+    # --- popularity within each RFM value tier ---
+    train_e_rfm = train_e.assign(vtier=train_e["household_key"].map(hh_rfm))
+    rfm_popularity: dict[str, list[int]] = {}
+    for tier in ("v1", "v2", "v3", "v4", "v5"):
         c = (
-            train_e_tier.loc[train_e_tier["tier"] == tier]
+            train_e_rfm.loc[train_e_rfm["vtier"] == tier]
             .groupby("PRODUCT_ID").size()
             .reindex(candidate_products, fill_value=0)
             .sort_values(ascending=False)
         )
-        segment_popularity[tier] = [int(p) for p in c.index]
+        rfm_popularity[tier] = [int(p) for p in c.index]
 
     # --- product -> commodity, and household -> commodity training spend ---
     prod_com = product.drop_duplicates("PRODUCT_ID").set_index("PRODUCT_ID")["COMMODITY_DESC"]
@@ -142,9 +195,13 @@ def build_purchase_task(
         ground_truth=ground_truth,
         hh_eval=hh_eval,
         hh_train_products=hh_train_products,
+        hh_train_freq=hh_train_freq,
         hh_tier=hh_tier,
+        hh_rfm=hh_rfm,
         popularity=popularity,
-        segment_popularity=segment_popularity,
+        trending=trending,
+        wilson=wilson,
+        rfm_popularity=rfm_popularity,
         product_commodity=product_commodity,
         hh_commodity_spend=hh_commodity_spend,
         meta=meta,
@@ -256,22 +313,41 @@ def popularity_baseline(task: PurchaseTask, k: int = K, exclude_seen: bool = Fal
     return _to_frame(task, top_by_hh, k)
 
 
-def segment_popularity_baseline(task: PurchaseTask, k: int = K, exclude_seen: bool = False) -> pd.DataFrame:
+def rfm_popularity_baseline(task: PurchaseTask, k: int = K, exclude_seen: bool = False) -> pd.DataFrame:
+    """Most-purchased products within the household's RFM value tier."""
     top_by_hh = {}
     for hh in task.hh_eval:
-        ordered = task.segment_popularity.get(task.hh_tier.get(hh, "mid"), task.popularity)
+        ordered = task.rfm_popularity.get(task.hh_rfm.get(hh, "v3"), task.popularity)
         excl = task.hh_train_products.get(hh, []) if exclude_seen else []
         top_by_hh[hh] = _take_k(ordered, k, excl, task.popularity)
     return _to_frame(task, top_by_hh, k)
 
 
-def repeat_buy_baseline(task: PurchaseTask, k: int = K, exclude_seen: bool = False) -> pd.DataFrame:
-    """Own past purchases first (recency-ordered), padded with global popularity.
-    With exclude_seen=True the method has nothing of its own to recommend and
-    degrades to popularity — reported for completeness only."""
+def trending_baseline(task: PurchaseTask, k: int = K, exclude_seen: bool = False) -> pd.DataFrame:
+    """Recency-weighted popularity — same list for every household."""
     top_by_hh = {}
     for hh in task.hh_eval:
-        hist = task.hh_train_products.get(hh, [])
+        excl = task.hh_train_products.get(hh, []) if exclude_seen else []
+        top_by_hh[hh] = _take_k(task.trending, k, excl, task.popularity)
+    return _to_frame(task, top_by_hh, k)
+
+
+def wilson_baseline(task: PurchaseTask, k: int = K, exclude_seen: bool = False) -> pd.DataFrame:
+    """Products ranked by the Wilson lower bound of their adoption rate."""
+    top_by_hh = {}
+    for hh in task.hh_eval:
+        excl = task.hh_train_products.get(hh, []) if exclude_seen else []
+        top_by_hh[hh] = _take_k(task.wilson, k, excl, task.popularity)
+    return _to_frame(task, top_by_hh, k)
+
+
+def repeat_buy_baseline(task: PurchaseTask, k: int = K, exclude_seen: bool = False) -> pd.DataFrame:
+    """A household's own past purchases, most-often-bought first, padded with
+    global popularity. With exclude_seen=True the method has nothing of its own
+    to recommend and degrades to popularity — reported for completeness only."""
+    top_by_hh = {}
+    for hh in task.hh_eval:
+        hist = task.hh_train_freq.get(hh, [])
         if exclude_seen:
             top_by_hh[hh] = _take_k(task.popularity, k, hist, task.popularity)
         else:
@@ -306,11 +382,13 @@ def last_category_baseline(task: PurchaseTask, k: int = K, exclude_seen: bool = 
 
 
 BASELINES = {
-    "random":             random_baseline,
-    "popularity":         popularity_baseline,
-    "segment_popularity": segment_popularity_baseline,
-    "repeat_buy":         repeat_buy_baseline,
-    "last_category":       last_category_baseline,
+    "random":         random_baseline,          # rung 1  sanity floor
+    "popularity":     popularity_baseline,      # rung 2  global demand
+    "rfm_popularity": rfm_popularity_baseline,  # rung 3  segment / category popular
+    "trending":       trending_baseline,        # rung 4  time sensitivity
+    "wilson":         wilson_baseline,          # rung 5  uncertainty-aware
+    "repeat_buy":     repeat_buy_baseline,      # +       personal purchase history (grocery standard)
+    "last_category":  last_category_baseline,   # +       category-content signal
 }
 
 
