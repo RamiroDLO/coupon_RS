@@ -176,6 +176,87 @@ one command regenerates the results.
 
 ## 3. Baseline — Meaningful baseline (15%)
 
+### 3.1 Why a ladder of baselines
+
+A baseline is the minimum a personalised method has to beat to be worth its
+complexity. Rather than compare against a single rule, we build a **ladder** of
+increasingly capable simple methods, so that "the personalised model adds value"
+has a precise meaning: it must beat the *strongest* rung, not the weakest.
+
+The course ladder runs: (1) random, (2) most-popular, (3) category- or
+segment-popular, (4) trending, (5) uncertainty-aware. We implement all five and
+add two rules that are standard in grocery: **repeat purchase** and a
+**category-content** rule.
+
+### 3.2 The baselines
+
+Every baseline recommends five products per household, chosen from the same
+~39,000 coupon-eligible products that were bought at least once during training,
+and is scored the same way against the household's test-period purchases (the
+protocol is in §5). The headline figure is **NDCG@5** — whether the right
+products appear, and appear high in the list. Recall@5 is reported too but is
+structurally small here: with a household buying about 66 different products in
+the test window, even a perfect five-item list can only recover a handful.
+
+| # | Baseline | What it recommends |
+|---|---|---|
+| 1 | Random | five products at random — the sanity floor |
+| 2 | Most popular | the five most-purchased products, the same list for everyone |
+| 3 | Segment-popular | the five most-purchased products *within the household's value segment*, where segments are built from how recently, how often and how much each household shops (RFM) |
+| 4 | Trending | most-popular, but weighting recent purchases more heavily |
+| 5 | Uncertainty-aware | popularity adjusted downwards for products bought by only a handful of households, so a rarely-bought item cannot rank high on thin evidence |
+| + | Repeat purchase | the five products the household itself bought most often during training |
+| + | Category-content | products from the grocery categories the household spends the most on |
+
+### 3.3 What the baselines show
+
+| Baseline | NDCG@5 (95% CI) | Hit-Rate@5 | Coverage |
+|---|---|---|---|
+| Repeat purchase | **0.573** [0.559, 0.586] | 0.86 | 0.082 |
+| Segment-popular | 0.397 [0.386, 0.407] | 0.81 | <0.001 |
+| Most popular | 0.396 [0.385, 0.407] | 0.81 | <0.001 |
+| Trending | 0.389 [0.378, 0.400] | 0.80 | <0.001 |
+| Uncertainty-aware | 0.373 [0.362, 0.384] | 0.77 | <0.001 |
+| Category-content | 0.150 [0.141, 0.160] | 0.40 | 0.016 |
+| Random | 0.003 | 0.01 | 0.261 |
+
+Three things stand out.
+
+**The non-personalised rungs are all the same.** Most-popular, segment-popular,
+trending and uncertainty-aware land within a whisker of each other
+(NDCG@5 ≈ 0.37–0.40, with overlapping confidence intervals). Segmenting
+customers, weighting for recency, or correcting for small samples does not change
+the top five, because the best-selling grocery products are near-universal —
+almost every household buys them.
+
+**Repeat purchase breaks away.** Recommending a household's own most-bought
+products scores NDCG@5 0.57, with a confidence interval clear of every other
+method. The only simple signal that genuinely helps is the household's own
+history.
+
+**Personalisation trades a little accuracy for much wider reach.** The
+non-personalised rules recommend almost the same five products to everyone
+(coverage near zero). Repeat purchase spreads recommendations across about 8% of
+the eligible range — a first sign of the relevance-versus-coverage trade-off that
+§6 examines.
+
+Every baseline also does better for light shoppers than for heavy ones — for
+example, repeat purchase reaches Recall@5 ≈ 0.07 for the least active third of
+households against ≈ 0.035 for the most active third. A light shopper buys few
+products, so a five-item list covers a larger share of them.
+
+### 3.4 The bar to clear
+
+**Repeat purchase (NDCG@5 0.57) is the bar the personalised method in §4 must
+clear.** Most popular (0.40) is reported as the non-personalised reference the
+pitch committed to, but it is not the hardest comparison.
+
+As a check, we also ran every baseline in a mode where recommendations may *not*
+repeat a household's past purchases. Every method then drops by roughly
+two-thirds (to NDCG@5 ≈ 0.10): most of what the simple methods get right is
+repeat buying, and predicting genuinely new purchases is far harder. §6 returns
+to this.
+
 ## 4. Method — Method design and implementation (20%)
 
 ## 5. Evaluation — Evaluation rigor (25%)
