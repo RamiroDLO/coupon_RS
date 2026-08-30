@@ -8,6 +8,28 @@ AI-tool-use honesty + 1-page learning reflection. **Due 28 September 2026.**
 
 ---
 
+## 0 · Current direction (August 2026)
+
+The project recommends, for each household, a short list of grocery **products**
+to offer a coupon on, and checks those picks against what the household actually
+**bought** in a held-back later period.
+
+Everything for this version lives in:
+
+- `notebooks/01_eda.ipynb` — data exploration
+- `src/product_reco.py` — the baselines and the scoring
+- `scripts/run_baselines.py` — runs and scores every baseline
+
+An earlier version of the project asked a different question — which *coupon
+campaigns* or *individual coupons* to send, checked against the retailer's own
+targeting and against redemptions. That code is still in the repo
+(`src/baselines.py`, `src/study2.py`, `src/fm_model.py` and their runner
+scripts) but is **not part of the current pipeline**. It is kept for reference
+and will be moved into a `legacy/` folder in one coordinated clean-up once this
+version is finished.
+
+---
+
 ## 1 · Where we are
 
 Progress is tracked by **phase**, not calendar days — some phases run in
