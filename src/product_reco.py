@@ -101,7 +101,7 @@ def build_purchase_task(
         hh_train_freq[int(hh)] = [int(p) for p in freq.index]
 
     # --- activity tier: trip-count terciles (used only for stratified reporting) ---
-    trips = purchases.groupby("household_key")["BASKET_ID"].nunique()
+    trips = train.groupby("household_key")["BASKET_ID"].nunique()
     hh_tier = {int(h): str(t) for h, t in pd.qcut(trips, 3, labels=["light", "mid", "heavy"]).items()}
 
     # --- RFM household segments (training window) ---
