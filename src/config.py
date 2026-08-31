@@ -31,7 +31,7 @@ SEED = 42
 # ---------------------------------------------------------------------------
 # Recommender knobs
 # ---------------------------------------------------------------------------
-K = 3                    # top-K recommendation size
+K = 5                    # top-K recommendation size (instructor guidance: 3-5; short offer list)
 RFM_QUANTILES = 5        # 5x5x5 = 125 possible segments
 ALS_DIM = 64             # latent dim for weighted implicit ALS (Wed)
 ALS_ALPHA = 40.0         # Hu-Koren-Volinsky confidence scaling (Wed)

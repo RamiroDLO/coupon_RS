@@ -33,6 +33,20 @@ def load_transactions() -> pd.DataFrame:
     return pd.read_csv(DATA_DIR / "transaction_data.csv", dtype=dtype)
 
 
+def load_purchases() -> pd.DataFrame:
+    """
+    Transaction lines that represent a genuine purchase: money changed hands
+    (``SALES_VALUE > 0``) and at least one unit was bought (``QUANTITY > 0``).
+
+    Drops returns, giveaways and scanning glitches (~1% of raw rows). This is
+    the single definition of "a purchase" for every downstream step — EDA,
+    baselines and model — so results cannot diverge on data cleaning.
+    """
+    tx = load_transactions()
+    keep = (tx["SALES_VALUE"] > 0) & (tx["QUANTITY"] > 0)
+    return tx.loc[keep].reset_index(drop=True)
+
+
 def load_product() -> pd.DataFrame:
     """~92k SKUs with department/commodity/sub-commodity hierarchy."""
     return pd.read_csv(DATA_DIR / "product.csv")
@@ -51,6 +65,14 @@ def load_campaign_table() -> pd.DataFrame:
 def load_coupon() -> pd.DataFrame:
     """COUPON_UPC -> PRODUCT_ID -> CAMPAIGN mapping."""
     return pd.read_csv(DATA_DIR / "coupon.csv")
+
+
+def coupon_eligible_products() -> set[int]:
+    """
+    The set of PRODUCT_IDs a coupon can be redeemed against — the candidate
+    universe for the recommender. Single definition, used everywhere.
+    """
+    return set(load_coupon()["PRODUCT_ID"].unique())
 
 
 def load_coupon_redempt() -> pd.DataFrame:
