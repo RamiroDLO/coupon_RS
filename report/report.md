@@ -416,8 +416,12 @@ Repeat purchase is the clear winner: Recall@5 = 0.0512, NDCG@5 = 0.5758 and Hit
 Rate@5 = 0.8579. ALS reaches Recall@5 = 0.0318, NDCG@5 = 0.3468 and Hit Rate@5 =
 0.7665. Thus ALS does not beat either the strongest baseline or the
 global-popularity reference. Relative to repeat purchase, ALS is 38.0% lower in
-Recall and 39.8% lower in NDCG. The repeat-buy Recall confidence interval [0.0482,
-0.0548] is also entirely above the popularity interval [0.0311, 0.0363].
+Recall and 39.8% lower in NDCG. ALS's NDCG@5 interval [0.336, 0.357] lies entirely
+below both the popularity reference [0.385, 0.407] and repeat purchase [0.562,
+0.589], so it is significantly worse, not merely lower; on Recall@5 the ALS
+interval [0.029, 0.034] overlaps popularity's [0.031, 0.036], so there the two are
+statistically indistinguishable. The repeat-buy Recall confidence interval [0.0482,
+0.0548] is entirely above the popularity interval [0.0311, 0.0363].
 
 ![Figure 1. Test NDCG@5 by model (include-seen condition).](figures/figure1_test_ndcg.png)
 
@@ -512,9 +516,9 @@ measures exposure breadth but not diversity within a household's list, novelty,
 benefit distribution, margin, stock availability or coupon cost. The validation
 window (five weeks) and the test window (eighteen weeks) also differ in length, so
 validation and test scores are not directly comparable; validation was used only
-to rank configurations, not to estimate test performance. Finally, ALS confidence
-intervals are not currently stored, preventing a consistent uncertainty comparison
-across all final models.
+to rank configurations, not to estimate test performance. Finally, the confidence
+intervals capture sampling noise on this one panel only; they say nothing about
+how the results would hold across other periods, retailers or populations.
 
 ### 6.3 Responsible deployment
 

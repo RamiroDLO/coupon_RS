@@ -187,8 +187,14 @@ def main() -> None:
     print("FINAL ALS TEST RESULTS")
     print("=" * 70)
 
-    print(f"Recall@{K}:   {metrics['recall_at_k']:.4f}")
-    print(f"NDCG@{K}:     {metrics['ndcg_at_k']:.4f}")
+    print(
+        f"Recall@{K}:   {metrics['recall_at_k']:.4f}  "
+        f"CI [{metrics['recall_at_k_ci'][0]:.4f}, {metrics['recall_at_k_ci'][1]:.4f}]"
+    )
+    print(
+        f"NDCG@{K}:     {metrics['ndcg_at_k']:.4f}  "
+        f"CI [{metrics['ndcg_at_k_ci'][0]:.4f}, {metrics['ndcg_at_k_ci'][1]:.4f}]"
+    )
     print(f"HitRate@{K}:  {metrics['hit_rate_at_k']:.4f}")
     print(f"Coverage:    {metrics['coverage']:.4f}")
 
@@ -232,7 +238,11 @@ def main() -> None:
             "iterations": BEST_ITERATIONS,
             "exclude_seen": exclude_seen,
             "recall_at_5": m["recall_at_k"],
+            "recall_lo": m["recall_at_k_ci"][0],
+            "recall_hi": m["recall_at_k_ci"][1],
             "ndcg_at_5": m["ndcg_at_k"],
+            "ndcg_lo": m["ndcg_at_k_ci"][0],
+            "ndcg_hi": m["ndcg_at_k_ci"][1],
             "hitrate_at_5": m["hit_rate_at_k"],
             "coverage": m["coverage"],
             "recall_light": m["recall_light"],

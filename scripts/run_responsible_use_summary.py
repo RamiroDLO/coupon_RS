@@ -239,7 +239,7 @@ manually.
 |---|---:|---:|---:|---:|---:|---:|
 | Repeat-buy | {fmt(repeat_recall)} | [{fmt(as_float(repeat_buy, "recall_lo"))}, {fmt(as_float(repeat_buy, "recall_hi"))}] | {fmt(repeat_ndcg)} | [{fmt(as_float(repeat_buy, "ndcg_lo"))}, {fmt(as_float(repeat_buy, "ndcg_hi"))}] | {fmt(as_float(repeat_buy, "hit_rate"))} | {fmt(as_float(repeat_buy, "coverage"))} |
 | Popularity | {fmt(as_float(popularity, "recall"))} | [{fmt(as_float(popularity, "recall_lo"))}, {fmt(as_float(popularity, "recall_hi"))}] | {fmt(as_float(popularity, "ndcg"))} | [{fmt(as_float(popularity, "ndcg_lo"))}, {fmt(as_float(popularity, "ndcg_hi"))}] | {fmt(as_float(popularity, "hit_rate"))} | {fmt(as_float(popularity, "coverage"))} |
-| ALS | {fmt(als_recall)} | Not saved | {fmt(als_ndcg)} | Not saved | {fmt(as_float(als, "hitrate_at_5"))} | {fmt(as_float(als, "coverage"))} |
+| ALS | {fmt(als_recall)} | [{fmt(as_float(als, "recall_lo"))}, {fmt(as_float(als, "recall_hi"))}] | {fmt(als_ndcg)} | [{fmt(as_float(als, "ndcg_lo"))}, {fmt(as_float(als, "ndcg_hi"))}] | {fmt(as_float(als, "hitrate_at_5"))} | {fmt(as_float(als, "coverage"))} |
 
 ALS configuration: factors={als["factors"]}, alpha={als["alpha"]},
 regularization={als["regularization"]}, iterations={als["iterations"]}.
@@ -281,9 +281,9 @@ window. It does not mean that the product itself is new to the catalogue.
    periods, retailers or populations.
 5. Cold-start evidence is especially weak because the cold group is extremely
    small.
-6. ALS confidence intervals are not currently stored in
-   `als_test_results.csv`, so uncertainty cannot yet be reported consistently
-   across all final models.
+6. Confidence intervals come from a percentile bootstrap over households; they
+   quantify sampling noise on this one panel, not variation across periods,
+   retailers or populations.
 
 ## Responsible-use interpretation
 
