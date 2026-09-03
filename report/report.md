@@ -141,8 +141,9 @@ each one points to a modelling choice:
   retailer, not a niche one.
 - **Histories are long.** A typical household made about 80 shopping trips and
   bought roughly 200 different coupon-eligible products in training — plenty to
-  personalise from. Only ~4% of households barely shopped; ~1% shopped so heavily
-  they would dominate an unadjusted "most-bought" ranking.
+  personalise from. Only ~4% of households barely shopped (fewer than 10 trips in
+  two years); ~1% shopped so heavily (over 500 trips) they would dominate an
+  unadjusted "most-bought" ranking.
 - **Almost every household can be scored, and cold start is not a concern.** Of
   the 2,500 households, **2,364** bought at least one coupon-eligible product in
   the test period and can be scored, and **99.8%** of them have prior history.
@@ -373,9 +374,12 @@ metric values are directly comparable across methods and are not inflated by an
 easier candidate pool.
 
 We also report Recall@5 by household activity tier (light, mid and heavy) and by
-warm/cold status. Activity-stratified results test whether a headline average
-hides systematic failure. Cold-start results are descriptive only because just
-five test households have no prior eligible-product history.
+warm/cold status. The activity tiers are equal-size thirds of the scored
+households, ranked by number of training-period shopping trips, and are distinct
+from the small "barely shops" group flagged in §2.4. Activity-stratified results
+test whether a headline average hides systematic failure. Cold-start results are
+descriptive only because just five test households have no prior eligible-product
+history.
 
 ### 5.3 Final test results
 
