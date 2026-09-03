@@ -341,6 +341,16 @@ candidate set.
 
 ### 5.1 Frozen protocol
 
+| Component | Choice |
+|---|---|
+| Task | Top-K product ranking, K = 5 |
+| Split | Temporal — train weeks 1–79, validation 80–84, test 85–102 |
+| Relevance | Binary: a candidate product the household bought in the test weeks |
+| Candidate set | 39,132 coupon-eligible products with at least one training purchase; closed and identical for every method |
+| Filtering | Households with no relevant test purchase excluded (2,364 scored); the primary run keeps already-bought products, an exclude-seen diagnostic (§5.4) removes them |
+| Metrics | NDCG@5 (headline), Recall@5, Hit-Rate@5; catalogue coverage as the trade-off metric |
+| Uncertainty | Percentile bootstrap 95% confidence intervals, 1,000 household resamples, seed 42 |
+
 The protocol consists of four explicit components. First, the temporal split
 mirrors deployment: train on weeks 1–79, select hyperparameters on weeks 80–84 and
 evaluate once on weeks 85–102. Second, the candidate set is closed: coupon-eligible
