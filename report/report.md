@@ -217,7 +217,7 @@ even a perfect five-item list can only recover a handful.
 
 | Baseline | NDCG@5 (95% CI) | Hit-Rate@5 | Coverage |
 |---|---|---|---|
-| Repeat purchase | **0.573** [0.559, 0.586] | 0.86 | 0.082 |
+| Repeat purchase | **0.576** [0.562, 0.589] | 0.86 | 0.082 |
 | Segment-popular | 0.397 [0.386, 0.407] | 0.81 | <0.001 |
 | Most popular | 0.396 [0.385, 0.407] | 0.81 | <0.001 |
 | Trending | 0.389 [0.378, 0.400] | 0.80 | <0.001 |
@@ -235,7 +235,7 @@ the best-selling grocery products are near-universal — almost every household 
 them.
 
 **Repeat purchase breaks away.** Recommending a household's own most-bought
-products scores NDCG@5 0.5758, with a confidence interval clear of every other
+products scores NDCG@5 0.576, with a confidence interval clear of every other
 method. The only simple signal that genuinely helps is the household's own
 history.
 
@@ -300,6 +300,13 @@ because grocery replenishment is a valid and commercially important
 recommendation; the exclude-seen condition is retained as a diagnostic, not the
 deployed task.
 
+This is a deliberate departure from the common convention of removing previously
+purchased items from the candidate list. That convention suits domains such as
+film or news, where re-consumption is rare; in grocery, replenishment of known
+products is the majority of demand and a commercially valid recommendation. We
+therefore treat the include-seen setting as the deployed task and report the
+exclude-seen setting as a discovery diagnostic (§5.4).
+
 ### 4.3 Hyperparameter selection
 
 We evaluated eight deliberately small ALS configurations on validation weeks
@@ -340,11 +347,14 @@ products bought at least once during training after cleaning. Third, ground trut
 for household *u* is the set of candidate products actually purchased by that
 household in the evaluation window. Fourth, households with no relevant test
 product are excluded. This leaves 2,021 households in validation and 2,364 in
-test.
+test. The test window spans 18 weeks so that products with a multi-week
+repurchase cycle are still represented in each household's ground truth; a
+shorter window would mislabel regular buyers of slower-moving products as
+non-buyers.
 
 Recommendations are lists of length K = 5. The relatively short list reflects
 limited customer attention and makes the output usable by a CRM manager. It also
-makes the task demanding: the median household has 69 relevant products in test,
+makes the task demanding: the median household has 66 relevant products in test,
 while the model may retrieve only five.
 
 ### 5.2 Metrics
@@ -357,7 +367,10 @@ the ideal DCG for each household. Hit Rate@5 is one when at least one recommende
 product is purchased and zero otherwise. Catalogue coverage is the number of
 distinct recommended products divided by the 39,132 candidates. Recall and NDCG
 are macro-averaged across households. Percentile bootstrap 95% confidence
-intervals use 1,000 household resamples with seed 42.
+intervals use 1,000 household resamples with seed 42. All methods rank the full
+candidate set of 39,132 products rather than a sampled subset of negatives, so
+metric values are directly comparable across methods and are not inflated by an
+easier candidate pool.
 
 We also report Recall@5 by household activity tier (light, mid and heavy) and by
 warm/cold status. Activity-stratified results test whether a headline average
@@ -456,9 +469,14 @@ stability across periods. Demographics cover 32% of households and are strongly
 non-random with respect to spend, so they were excluded. Cold-household
 performance is based on five cases and should not be generalized. Coverage
 measures exposure breadth but not diversity within a household's list, novelty,
-benefit distribution, margin, stock availability or coupon cost. Finally, ALS
-confidence intervals are not currently stored, preventing a consistent uncertainty
-comparison across all final models.
+benefit distribution, margin, stock availability or coupon cost. The validation
+window (five weeks) and the test window (eighteen weeks) also differ in length, so
+validation and test scores are not directly comparable; validation was used only
+to rank configurations, not to estimate test performance. The exclude-seen
+discovery diagnostic (§5.4) was computed for the baselines only — ALS was not
+re-run under that condition — so the discovery comparison does not yet include the
+latent-factor model. Finally, ALS confidence intervals are not currently stored,
+preventing a consistent uncertainty comparison across all final models.
 
 ### 6.3 Responsible deployment
 
@@ -493,9 +511,16 @@ feasibility would need assessment for the 39,132-product candidate set. BPR [3]
 could optimize discovery ranking, but its negative sampling requires care because
 an unpurchased product is not necessarily disliked. LightFM [5] could incorporate
 product-hierarchy features without relying on the incomplete demographic data.
-These alternatives should be compared through rolling temporal validation,
-followed by a randomized A/B test measuring incremental purchases and margin net
-of coupon cost.
+
+Two smaller, low-cost improvements would strengthen the evaluation itself.
+First, a rolling-origin temporal validation — several successive train/validation
+folds of equal length to the test window — would give a variance estimate for
+each method and make validation and test scores comparable, replacing the single
+five-week validation window used here. Second, re-running ALS under the
+exclude-seen condition would close the one gap in the current discovery
+comparison (§5.4). Any new method should then be compared through this rolling
+validation, followed by a randomized A/B test measuring incremental purchases and
+margin net of coupon cost.
 
 ## 7. Conclusion
 
