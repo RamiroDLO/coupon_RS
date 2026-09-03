@@ -149,6 +149,16 @@ def main() -> None:
         exclude_seen=False,
     )
 
+    # Second condition: the same trained model, but forbidden from recommending
+    # products the household already bought in training. This is the discovery
+    # diagnostic — it puts ALS on the same footing as the exclude-seen baselines.
+    recommendations_excl = recommend_als(
+        task=test_task,
+        artifacts=artifacts,
+        k=K,
+        exclude_seen=True,
+    )
+
     # ========================================================
     # 6. FINAL TEST EVALUATION
     # ========================================================
@@ -158,6 +168,12 @@ def main() -> None:
 
     metrics = evaluate(
         recs_df=recommendations,
+        task=test_task,
+        k=K,
+    )
+
+    metrics_excl = evaluate(
+        recs_df=recommendations_excl,
         task=test_task,
         k=K,
     )
@@ -190,34 +206,47 @@ def main() -> None:
         f"{metrics['cold_recall']:.4f}"
     )
 
+    print()
+    print("-" * 70)
+    print("EXCLUDE-SEEN (discovery diagnostic)")
+    print("-" * 70)
+    print(f"Recall@{K}:   {metrics_excl['recall_at_k']:.4f}")
+    print(f"NDCG@{K}:     {metrics_excl['ndcg_at_k']:.4f}")
+    print(f"HitRate@{K}:  {metrics_excl['hit_rate_at_k']:.4f}")
+    print(f"Coverage:    {metrics_excl['coverage']:.4f}")
+
     # ========================================================
     # 8. SAVE FINAL RESULT
     # ========================================================
 
+    def _row(m: dict, exclude_seen: bool) -> dict:
+        return {
+            "model": "ALS",
+            "split": "test",
+            "k": K,
+            "train_weeks": f"{TRAIN_WEEKS[0]}-{TRAIN_WEEKS[-1]}",
+            "test_weeks": f"{TEST_WEEKS[0]}-{TEST_WEEKS[-1]}",
+            "factors": BEST_FACTORS,
+            "alpha": BEST_ALPHA,
+            "regularization": BEST_REGULARIZATION,
+            "iterations": BEST_ITERATIONS,
+            "exclude_seen": exclude_seen,
+            "recall_at_5": m["recall_at_k"],
+            "ndcg_at_5": m["ndcg_at_k"],
+            "hitrate_at_5": m["hit_rate_at_k"],
+            "coverage": m["coverage"],
+            "recall_light": m["recall_light"],
+            "recall_mid": m["recall_mid"],
+            "recall_heavy": m["recall_heavy"],
+            "warm_recall": m["warm_recall"],
+            "cold_recall": m["cold_recall"],
+            "n_eval": m["n_households_evaluated"],
+        }
+
     results = pd.DataFrame(
         [
-            {
-                "model": "ALS",
-                "split": "test",
-                "k": K,
-                "train_weeks": f"{TRAIN_WEEKS[0]}-{TRAIN_WEEKS[-1]}",
-                "test_weeks": f"{TEST_WEEKS[0]}-{TEST_WEEKS[-1]}",
-                "factors": BEST_FACTORS,
-                "alpha": BEST_ALPHA,
-                "regularization": BEST_REGULARIZATION,
-                "iterations": BEST_ITERATIONS,
-                "exclude_seen": False,
-                "recall_at_5": metrics["recall_at_k"],
-                "ndcg_at_5": metrics["ndcg_at_k"],
-                "hitrate_at_5": metrics["hit_rate_at_k"],
-                "coverage": metrics["coverage"],
-                "recall_light": metrics["recall_light"],
-                "recall_mid": metrics["recall_mid"],
-                "recall_heavy": metrics["recall_heavy"],
-                "warm_recall": metrics["warm_recall"],
-                "cold_recall": metrics["cold_recall"],
-                "n_eval": metrics["n_households_evaluated"],
-            }
+            _row(metrics, exclude_seen=False),
+            _row(metrics_excl, exclude_seen=True),
         ]
     )
 
