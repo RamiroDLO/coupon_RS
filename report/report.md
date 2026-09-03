@@ -199,10 +199,15 @@ add two rules that are standard in grocery: **repeat purchase** and a
 Every baseline recommends five products per household, chosen from the same
 ~39,000 coupon-eligible products that were bought at least once during training,
 and is scored the same way against the household's test-period purchases (the
-protocol is in §5). The headline figure is **NDCG@5** — whether the right products
-appear, and appear high in the list. Recall@5 is reported too but is structurally
+protocol is in §5). The headline figure is **NDCG@5**, which runs from 0 (none of
+the five products was bought) to 1 (the five top-ranked slots are all correct); it
+rewards putting the right products high in a short list. **Recall@5** — the share
+of a household's later purchases recovered — is reported too but is structurally
 small here: with a household buying about 66 different products in the test window,
-even a perfect five-item list can only recover a handful.
+even a perfect five-item list can only recover a handful. **Hit-Rate@5** is the
+share of households for which at least one of the five was bought, and **coverage**
+runs from near 0 (the same five products to everyone) to 1 (the whole candidate
+set used).
 
 | # | Baseline | What it recommends |
 |---|---|---|
