@@ -149,10 +149,11 @@ each one points to a modelling choice:
   the test period and can be scored, and **99.8%** of them have prior history.
 - **The test period is a demanding target.** We do not train or tune on the test
   weeks, but we can describe what is in them. In that window a household buys about
-  **70** different coupon-eligible products, and **62.9% are products it had never
-  bought before** — so a recommender that only replays past favourites would miss
-  most of what happens. Because each household's target is large, absolute Recall
-  figures will be small; the comparison *between* methods is what matters (see §5).
+  **66** different products the recommender could offer a coupon on, and **about
+  61% are ones it had never bought before** — so a recommender that only replays
+  past favourites would miss most of what happens. Because each household's target
+  is large, absolute Recall figures will be small; the comparison *between*
+  methods is what matters (see §5).
 - **A purchase is a trustworthy sign of preference.** We score methods on what
   households bought in the test period, so "bought it" needs to mean "wanted it",
   not "it was on offer that week". Only about **1.6%** of the coupon-eligible
@@ -172,10 +173,14 @@ relevant categories.
 
 ### 2.5 Reproducibility
 
-All figures above come from a single exploratory notebook (`notebooks/01_eda.ipynb`)
-that loads the raw files, applies the cleaning rule, and prints every number used
-here. The past/future split — training weeks 1–79, validation 80–84, test 85–102 —
-is fixed in a shared configuration file and imported everywhere, so it cannot
+All figures above are produced from the raw files by the exploratory notebook
+(`notebooks/01_eda.ipynb`) and the shared task builder, which apply the same
+cleaning rule and past/future split and record every number used here. Figures
+that describe the scored task (ground-truth size, new-versus-repeat share) are
+taken from the task builder, which additionally restricts test purchases to the
+candidate set; the notebook's un-restricted counts are a few percent larger. The
+past/future split — training weeks 1–79, validation 80–84, test 85–102 — is fixed
+in a shared configuration file and imported everywhere, so it cannot
 drift between the exploration, the baselines and the final model. The dataset is
 publicly available on Kaggle [1]; the repository holds the code and the split
 definition, and one command regenerates the results.
@@ -448,8 +453,12 @@ a simple measure of household modelability.
 
 The exclude-seen diagnostic confirms that novel-item recommendation is much
 harder. Repeat purchase necessarily falls back to popularity and obtains NDCG@5 =
-0.1048; most baselines converge near the same level. In the EDA, 62.9% of test
-products are new to the household, but the repeat 37.1% is much more predictable.
+0.1048; most baselines converge near the same level. ALS, run under the same
+condition, reaches NDCG@5 = 0.1095 — inside that cluster and no better than the
+simple rules. Personalisation therefore adds nothing on discovery either: ALS does
+not beat the baselines under any condition tested. Of the products the recommender
+is scored on, 61.4% are new to the household, and the repeat 38.6% is much more
+predictable.
 This score should be read as a lower bound on discovery quality rather than a true
 measure: offline, a recommended new product only counts as correct if the
 household happened to buy it anyway during the test weeks, so a good suggestion
@@ -503,11 +512,9 @@ measures exposure breadth but not diversity within a household's list, novelty,
 benefit distribution, margin, stock availability or coupon cost. The validation
 window (five weeks) and the test window (eighteen weeks) also differ in length, so
 validation and test scores are not directly comparable; validation was used only
-to rank configurations, not to estimate test performance. The exclude-seen
-discovery diagnostic (§5.4) was computed for the baselines only — ALS was not
-re-run under that condition — so the discovery comparison does not yet include the
-latent-factor model. Finally, ALS confidence intervals are not currently stored,
-preventing a consistent uncertainty comparison across all final models.
+to rank configurations, not to estimate test performance. Finally, ALS confidence
+intervals are not currently stored, preventing a consistent uncertainty comparison
+across all final models.
 
 ### 6.3 Responsible deployment
 
@@ -543,15 +550,13 @@ could optimize discovery ranking, but its negative sampling requires care becaus
 an unpurchased product is not necessarily disliked. LightFM [5] could incorporate
 product-hierarchy features without relying on the incomplete demographic data.
 
-Two smaller, low-cost improvements would strengthen the evaluation itself.
-First, a rolling-origin temporal validation — several successive train/validation
-folds of equal length to the test window — would give a variance estimate for
-each method and make validation and test scores comparable, replacing the single
-five-week validation window used here. Second, re-running ALS under the
-exclude-seen condition would close the one gap in the current discovery
-comparison (§5.4). Any new method should then be compared through this rolling
-validation, followed by a randomized A/B test measuring incremental purchases and
-margin net of coupon cost.
+One smaller, low-cost improvement would strengthen the evaluation itself: a
+rolling-origin temporal validation — several successive train/validation folds of
+equal length to the test window — would give a variance estimate for each method
+and make validation and test scores comparable, replacing the single five-week
+validation window used here. Any new method should then be compared through this
+rolling validation, followed by a randomized A/B test measuring incremental
+purchases and margin net of coupon cost.
 
 ## 7. Conclusion
 
@@ -560,12 +565,13 @@ and evaluated recommendations against later purchases. The reproducible pipeline
 combines a closed 39,132-product candidate set, strict temporal separation, strong
 baselines, weighted implicit ALS and relevance plus coverage metrics. Repeat
 purchase was best (NDCG@5 0.5758; Recall@5 0.0512), while ALS reached 0.3468 and
-0.0318 respectively and covered fewer products than repeat purchase. The practical
-recommendation is therefore to retain the simple personalized baseline as the
-candidate for controlled online evaluation and treat latent-factor or hybrid
-models as experiments that must demonstrate incremental value. The broader lesson
-is straightforward: in recurrent grocery demand, exact household history can be
-more valuable than a more complex latent representation.
+0.0318 respectively, covered fewer products than repeat purchase, and did not
+improve on the baselines in a discovery-only (exclude-seen) condition either. The
+practical recommendation is therefore to retain the simple personalized baseline
+as the candidate for controlled online evaluation and treat latent-factor or
+hybrid models as experiments that must demonstrate incremental value. The broader
+lesson is straightforward: in recurrent grocery demand, exact household history
+can be more valuable than a more complex latent representation.
 
 ## Author Contributions
 

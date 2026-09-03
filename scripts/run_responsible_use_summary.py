@@ -171,11 +171,13 @@ def main() -> None:
 
     als_test_rows = [
         row for row in als_rows
-        if row["model"].upper() == "ALS" and row["split"].lower() == "test"
+        if row["model"].upper() == "ALS"
+        and row["split"].lower() == "test"
+        and row["exclude_seen"].strip().lower() == "false"
     ]
     if len(als_test_rows) != 1:
         raise ValueError(
-            "Expected exactly one final ALS test row in "
+            "Expected exactly one include-seen final ALS test row in "
             f"{ALS_TEST_RESULTS.name}; found {len(als_test_rows)}."
         )
     als = als_test_rows[0]
