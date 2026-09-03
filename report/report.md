@@ -475,67 +475,86 @@ strongest repeat-purchase baseline, and it provides less coverage. It
 also underperforms global popularity. This is an informative result
 rather than a failed experiment. The course principle that model
 complexity must earn its place is borne out empirically: a transparent
-rule based on exact personal history is more useful here than a generic
-latent representation.
+rule based on exact personal history is more useful here than a compact
+latent-factor representation.
 
 Several mechanisms may explain the result. Grocery purchasing is
 strongly habitual at SKU level; substituting latent similarity for exact
 identity can hurt replenishment. The candidate catalogue is extremely
 large relative to 2,500 households. A four-factor model is regularized
-and stable but may be too coarse, while higher-dimensional
-configurations produced worse validation NDCG. Finally, confidence is
-driven by frequency, so popular staples can dominate factors and reduce
-catalogue reach.
+but may be too coarse, while higher-dimensional configurations produced
+worse validation NDCG. Finally, frequency-based confidence may give
+greater weight to repeatedly purchased staples and concentrate
+recommendations, although this mechanism was not tested directly.
 
 ## 6.2 Limitations and risks
 
-The panel is observational and limited to 2,500 frequent shoppers at one
-US retailer. Purchases are implicit feedback: missing interactions
-combine dislike, lack of awareness, lack of availability and lack of
-need. The evaluation measures purchase prediction, not coupon
-incrementality. A recommended product might have been purchased at full
-price anyway; offline relevance therefore cannot establish causal lift
-or profitability.
+The panel is observational and limited to 2,500 loyalty-card households at one
+US retailer. Purchases are implicit feedback: missing interactions may reflect
+dislike, lack of awareness or exposure, lack of availability, or lack of need.
+The preliminary campaign analysis is additionally affected by logging and
+exposure bias because the retailer's previous policy determined which
+households received each campaign. Therefore, non-redemption cannot be
+interpreted as rejection or compared directly with the product-ranking
+metrics. The evaluation measures purchase prediction, not coupon
+incrementality. A recommended product might have been purchased without the
+coupon; offline relevance therefore cannot establish causal lift or
+profitability.
 
-The closed candidate rule excludes coupon-eligible products without
-training purchases and cannot assess true cold-item discovery. The test
-period contains week 92 as an unusual high-sales week, although
-aggregate test sales are only 0.59 standard deviations above the
-full-period weekly mean. Demographics cover 32% of households and are
-strongly non-random with respect to spend, so they were excluded.
-Cold-household performance is based on five cases and should not be
-generalized. Coverage measures exposure breadth but not diversity within
-a household's list, novelty, margin, stock availability or coupon cost.
+The closed candidate rule excludes coupon-eligible products without training
+purchases and cannot assess true cold-item discovery. The findings are
+therefore conditional on this candidate set and the frozen K=5 include-seen
+protocol. The test period contains week 92 as an unusual high-sales week,
+although aggregate test sales are only 0.59 standard deviations above the
+full-period weekly mean. The temporal split reduces leakage, but a single test
+window cannot demonstrate stability across periods. Demographics cover 32% of
+households and are strongly non-random with respect to spend, so they were
+excluded. Cold-household performance is based on five cases and should not be
+generalized. Coverage measures exposure breadth but not diversity within a
+household's list, novelty, benefit distribution, margin, stock availability or
+coupon cost. Finally, ALS confidence intervals are not currently stored,
+preventing a consistent uncertainty comparison across all final models.
 
 ## 6.3 Responsible deployment
 
 A production system should not automatically issue coupons from these
-rankings. The list should be a decision aid for a CRM manager and pass
-eligibility, inventory, margin, frequency-cap and legal checks.
-Recommending only habitual products could subsidize purchases that would
-happen anyway and concentrate benefits on already valuable customers.
-Conversely, a pure discovery objective could waste attention and
-discount budget. A controlled A/B test should compare repeat purchase,
-ALS or a hybrid against current targeting using redemption, incremental
-margin, opt-outs and coverage across household groups.
+rankings. The list should remain a decision aid for a CRM manager and pass
+eligibility, inventory, margin, coupon-cost, frequency-cap and legal checks.
+Recommending only habitual products could subsidize purchases that would have
+occurred anyway and concentrate benefits on already valuable customers.
+Conversely, a pure discovery objective could waste customer attention and
+discount budget.
 
-The data are pseudonymous but still describe detailed household
-behaviour. Access should be restricted, identifiers minimized, retention
-bounded and subgroup reporting aggregated. Protected or sensitive
-demographic proxies should not be used for differential coupon value
-without explicit fairness review.
+Repeat purchase is the leading candidate for controlled online evaluation,
+while ALS or a hybrid should first demonstrate stronger offline evidence. A
+randomized A/B test should compare the candidate policy with business-as-usual
+targeting and measure incremental redemption, purchases and margin net of
+coupon cost, together with opt-outs and benefit distribution across household
+groups. Performance, catalogue exposure and temporal drift should be monitored
+after launch because behaviour, prices, inventory and product availability may
+change.
+
+The data use coded household identifiers but still describe detailed
+household behaviour. In a production setting, access should be
+restricted, identifiers minimized, retention bounded and subgroup
+reporting aggregated. Protected characteristics or sensitive
+demographic proxies should not determine coupon value or eligibility
+without an explicit fairness review.
 
 ## 6.4 Future work
 
-The most promising next model is a hybrid two-stage system: retrieve
-recurrent products from personal history, add category-similar or
-trending candidates for discovery, then re-rank with an explicit
-novelty/coverage constraint. EASE, BPR and LightFM provide reasonable
-benchmarks \[3–5\]. Time-decayed repeat scores, quantity-aware
-confidence and product hierarchy features could be tested using rolling
-temporal validation. The final decision, however, should be based on an
-online randomized experiment that estimates incremental purchases and
-margin rather than offline overlap alone.
+Future work should separate replenishment from discovery. A two-stage
+system could retrieve recurrent products using time-decayed purchase
+history, add discovery candidates, and re-rank them to balance relevance,
+novelty and catalogue coverage. EASE \[4\] could model item-to-item co-purchase
+patterns, although its computational feasibility would need assessment
+for the 39,132-product candidate set. BPR \[3\] could optimize discovery
+ranking, but its negative sampling requires care because an unpurchased
+product is not necessarily disliked. LightFM \[5\] could incorporate
+product-hierarchy features without relying on the incomplete demographic
+data. These alternatives should be compared through rolling temporal
+validation, followed by a randomized A/B test measuring incremental
+purchases and margin net of coupon cost.
 
 # 7. Conclusion
 
@@ -544,13 +563,14 @@ ranking problem and evaluated recommendations against later purchases.
 The reproducible pipeline combines a closed 39,132-product candidate
 set, strict temporal separation, strong baselines, weighted implicit ALS
 and relevance plus coverage metrics. Repeat purchase was best (NDCG@5
-0.575858; Recall@5 0.0512), while ALS reached 0.3468 and 0.0318
-respectively and covered fewer products. The practical recommendation is
-therefore to retain the simple personalized baseline as the deployment
-candidate and treat latent-factor or hybrid models as experiments that
-must demonstrate incremental value. The broader lesson is
-straightforward: in recurrent grocery demand, exact household history
-can be more valuable than a more complex latent representation.
+0.5758; Recall@5 0.0512), while ALS reached 0.3468 and 0.0318
+respectively and covered fewer products than repeat purchase. The
+practical recommendation is therefore to retain the simple personalized
+baseline as the candidate for controlled online evaluation and treat
+latent-factor or hybrid models as experiments that must demonstrate
+incremental value. The broader lesson is straightforward: in recurrent
+grocery demand, exact household history can be more valuable than a more
+complex latent representation.
 
 # Author Contributions
 
