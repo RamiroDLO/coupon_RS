@@ -258,14 +258,18 @@ products, so a five-item list covers a larger share of them.
 
 ### 3.4 The bar to clear
 
-**Repeat purchase (NDCG@5 0.5758) is the bar the personalised method in §4 must
+**Repeat purchase (NDCG@5 0.576) is the bar the personalised method in §4 must
 clear.** Most popular (0.40) is reported as the non-personalised reference the
 pitch committed to, but it is not the hardest comparison.
 
-As a check, we also ran every baseline in a mode where recommendations may *not*
-repeat a household's past purchases. Every method then drops by roughly two-thirds
-(to NDCG@5 ≈ 0.10): most of what the simple methods get right is repeat buying,
-and predicting genuinely new purchases is far harder. §6 returns to this.
+As a check, we re-ran every baseline in an *exclude-seen* mode: the same methods,
+scored the same way, but each household's own training purchases are removed from
+its ranked list before the top five are taken, so a method can only score on
+products the household had never bought. Every method then drops by roughly
+two-thirds (to NDCG@5 ≈ 0.10), and repeat purchase — having nothing of its own
+left to recommend — falls back to popularity. Most of what the simple methods get
+right is repeat buying; predicting genuinely new purchases is far harder. §6
+returns to this.
 
 ## 4. Method — Method design and implementation (20%)
 
