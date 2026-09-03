@@ -383,7 +383,11 @@ the ideal DCG for each household. Hit Rate@5 is one when at least one recommende
 product is purchased and zero otherwise. Catalogue coverage is the number of
 distinct recommended products divided by the 39,132 candidates. Recall and NDCG
 are macro-averaged across households. Percentile bootstrap 95% confidence
-intervals use 1,000 household resamples with seed 42. All methods rank the full
+intervals use 1,000 household resamples with seed 42: each resample redraws the
+scored households with replacement and recomputes the mean, and the interval runs
+from the 2.5th to the 97.5th percentile of those means. Two methods whose
+intervals do not overlap differ by more than sampling noise; overlapping intervals
+mean the difference is not established. All methods rank the full
 candidate set of 39,132 products rather than a sampled subset of negatives, so
 metric values are directly comparable across methods and are not inflated by an
 easier candidate pool.
