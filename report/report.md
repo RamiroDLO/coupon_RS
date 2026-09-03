@@ -450,8 +450,12 @@ The exclude-seen diagnostic confirms that novel-item recommendation is much
 harder. Repeat purchase necessarily falls back to popularity and obtains NDCG@5 =
 0.1048; most baselines converge near the same level. In the EDA, 62.9% of test
 products are new to the household, but the repeat 37.1% is much more predictable.
-Future work should therefore evaluate replenishment and discovery as separate
-product objectives instead of forcing one ranking to serve both.
+This score should be read as a lower bound on discovery quality rather than a true
+measure: offline, a recommended new product only counts as correct if the
+household happened to buy it anyway during the test weeks, so a good suggestion
+the household was never exposed to scores the same as a poor one. Future work
+should therefore evaluate replenishment and discovery as separate product
+objectives instead of forcing one ranking to serve both.
 
 ## 6. Discussion, limitations and responsible use (10%)
 
