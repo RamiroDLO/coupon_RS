@@ -235,15 +235,15 @@ Three things stand out.
 
 **The non-personalised rungs are all the same.** Most-popular, segment-popular,
 trending and uncertainty-aware land within a whisker of each other (NDCG@5 ≈
-0.37–0.40, with overlapping confidence intervals). Segmenting customers, weighting
-for recency, or correcting for small samples does not change the top five, because
-the best-selling grocery products are near-universal — almost every household buys
-them.
+0.37–0.40); their confidence intervals overlap, so the four cannot be ranked
+against one another. Segmenting customers, weighting for recency, or correcting
+for small samples does not change the top five, because the best-selling grocery
+products are near-universal — almost every household buys them.
 
 **Repeat purchase breaks away.** Recommending a household's own most-bought
-products scores NDCG@5 0.576, with a confidence interval clear of every other
-method. The only simple signal that genuinely helps is the household's own
-history.
+products scores NDCG@5 0.576, with a confidence interval ([0.562, 0.589]) that
+clears every other method's, so the gain is not sampling noise. The only simple
+signal that genuinely helps is the household's own history.
 
 **Personalisation trades a little accuracy for much wider reach.** The
 non-personalised rules recommend almost the same five products to everyone
