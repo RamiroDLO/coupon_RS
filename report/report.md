@@ -533,15 +533,19 @@ repeat-purchase baseline, and it provides less coverage. It also underperforms
 global popularity. This is an informative result rather than a failed experiment.
 The course principle that model complexity must earn its place is borne out
 empirically: a transparent rule based on exact personal history is more useful
-here than a compact latent-factor representation.
+here than a compact latent-factor representation (each household reduced to a few
+numbers).
 
-Several mechanisms may explain the result. Grocery purchasing is strongly habitual
-at SKU level; substituting latent similarity for exact identity can hurt
-replenishment. The candidate catalogue is extremely large relative to 2,500
-households. A four-factor model is regularized but may be too coarse, while
-higher-dimensional configurations produced worse validation NDCG. Finally,
-frequency-based confidence may give greater weight to repeatedly purchased staples
-and concentrate recommendations, although this mechanism was not tested directly.
+Several mechanisms may explain the result. Grocery buying is strongly habitual at
+the level of the individual product — the exact brand and pack, or *SKU* — and
+replacing that exact product with a "nearby" one, which is what a taste-profile
+match does, can hurt at predicting re-purchases. The catalogue is also very large
+relative to only 2,500 households. The chosen four-factor model (four numbers per
+profile) is regularised but may be too coarse, yet profiles with more numbers
+scored worse on validation. Finally, the frequency-based confidence weighting —
+counting a product bought ten times far more heavily than one bought once — may
+make ALS over-focus on a household's staples and narrow its recommendations,
+though this was not tested directly.
 
 ### 6.2 Limitations and risks
 
