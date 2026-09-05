@@ -320,10 +320,10 @@ considered as alternatives in §6.4. ALS represents every household and every
 product as a short vector of *latent factors* — a compact numeric "taste profile"
 — and predicts a household's interest in a product by how closely the two vectors
 line up. These factors are dimensions the model learns from shared purchase
-patterns, not named product attributes. In the implementation, observed purchase counts are scaled by alpha
-before fitting, while unobserved pairs retain the library's default background
-confidence. The method learns a low-dimensional household vector $\mathbf{x}_u$ and
-product vector $\mathbf{y}_i$ by minimizing
+patterns, not named product attributes. In the implementation, observed purchase
+counts are scaled by alpha before fitting, while unobserved pairs retain the
+library's default background confidence. The method learns a low-dimensional
+household vector $\mathbf{x}_u$ and product vector $\mathbf{y}_i$ by minimizing
 
 $$L=\sum_{u,i} c_{ui}\,(p_{ui}-\mathbf{x}_u^{\top}\mathbf{y}_i)^2+\lambda\left(\sum_u \|\mathbf{x}_u\|^2+\sum_i \|\mathbf{y}_i\|^2\right)$$
 
@@ -347,10 +347,10 @@ problem for each household; holding household vectors fixed gives the
 corresponding product update. Alternating these steps scales to the sparse matrix
 without sampling unobserved pairs. Recommendation scores are dot products
 $\mathbf{x}_u^{\top}\mathbf{y}_i$. The five highest-scoring products in the fixed
-candidate set are returned. Previously purchased products remain eligible (exclude_seen=False)
-because grocery replenishment is a valid and commercially important
-recommendation; the exclude-seen condition is retained as a diagnostic, not the
-deployed task.
+candidate set are returned. Previously purchased products remain eligible
+(exclude_seen=False) because grocery replenishment is a valid and commercially
+important recommendation; the exclude-seen condition is retained as a diagnostic,
+not the deployed task.
 
 This is a deliberate departure from the common convention of removing previously
 purchased items from the candidate list. That convention suits domains such as
@@ -504,8 +504,8 @@ Repeat purchase outperforms ALS in every activity tier. Recall@5 for repeat
 purchase is 0.0654/0.0514/0.0380 for light/mid/heavy households; ALS achieves
 0.0462/0.0296/0.0205. Recall falls with activity because heavy shoppers buy larger
 and more varied test baskets, so five recommendations cover a smaller fraction of
-their ground truth. This denominator effect cautions against reading the tiers as
-a simple measure of household modelability.
+their ground truth. The lower recall for heavy shoppers is therefore partly an
+artefact of basket size, not proof that they are harder to predict.
 
 The exclude-seen diagnostic confirms that novel-item recommendation is much
 harder. Repeat purchase necessarily falls back to popularity and obtains NDCG@5 =
@@ -515,12 +515,13 @@ simple rules. Personalisation therefore adds nothing on discovery either: ALS do
 not beat the baselines under any condition tested. Of the products the recommender
 is scored on, 61.4% are new to the household, and the repeat 38.6% is much more
 predictable.
-This score should be read as a lower bound on discovery quality rather than a true
-measure: offline, a recommended new product only counts as correct if the
-household happened to buy it anyway during the test weeks, so a good suggestion
-the household was never exposed to scores the same as a poor one. Future work
-should therefore evaluate replenishment and discovery as separate product
-objectives instead of forcing one ranking to serve both.
+
+The exclude-seen score should be read as a lower bound on discovery quality rather
+than a true measure: offline, a recommended new product only counts as correct if
+the household happened to buy it anyway during the test weeks, so a good
+suggestion the household was never exposed to scores the same as a poor one.
+Future work should therefore evaluate replenishment and discovery as separate
+product objectives instead of forcing one ranking to serve both.
 
 ## 6. Discussion, limitations and responsible use (10%)
 
