@@ -154,12 +154,14 @@ each one points to a modelling choice:
   past favourites would miss most of what happens. Because each household's target
   is large, absolute Recall figures will be small; the comparison *between*
   methods is what matters (see §5).
-- **A purchase is a trustworthy sign of preference.** We score methods on what
-  households bought in the test period, so "bought it" needs to mean "wanted it",
-  not "it was on offer that week". Only about **1.6%** of the coupon-eligible
-  purchases we score against had a manufacturer coupon attached; the other ~98%
-  were bought at normal price, so the promotion effect is too small to distort the
-  comparison.
+- **A purchase is a broadly trustworthy sign of preference.** We score methods on
+  what households bought in the test period, so "bought it" should mean "wanted
+  it" rather than "it was promoted". Only about **1.6%** of the coupon-eligible
+  purchases we score against carried a targeted manufacturer coupon. Routine
+  loyalty-card discounts are far more common — around half of all purchase lines
+  carry one — but they apply broadly rather than steering a household toward
+  particular products; in-store displays and mailers are not recorded, so a small
+  promotion effect cannot be fully ruled out.
 - **Demographics are not used as a model input.** The household demographic file
   (age, income, family) covers only about **32%** of households, and those
   households spend markedly more than the rest — the coverage is not random.
