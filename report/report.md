@@ -250,11 +250,13 @@ products scores NDCG@5 0.576, with a confidence interval ([0.562, 0.589]) that
 clears every other method's, so the gain is not sampling noise. The only simple
 signal that genuinely helps is the household's own history.
 
-**Personalisation trades a little accuracy for much wider reach.** The
-non-personalised rules recommend almost the same five products to everyone
-(coverage near zero). Repeat purchase spreads recommendations across about 8% of
-the eligible range — a first sign of the relevance-versus-coverage trade-off that
-§6 examines.
+**Repeat purchase widens reach without costing relevance.** The non-personalised
+rules recommend almost the same five products to everyone (coverage below 0.001).
+Repeat purchase spreads recommendations across about 8% of the eligible range
+*and* scores higher on NDCG@5 and Hit-Rate@5, so at the baseline level there is no
+accuracy-versus-coverage trade-off. That tension appears only with the
+latent-factor model in §5, where ALS buys a little extra coverage at a clear cost
+in relevance.
 
 Every baseline also does better for light shoppers than for heavy ones — for
 example, repeat purchase reaches Recall@5 ≈ 0.07 for the least active third of
