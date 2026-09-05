@@ -648,8 +648,9 @@ improve on the baselines in a discovery-only (exclude-seen) condition either. Th
 practical recommendation is therefore to retain the simple personalized baseline
 as the candidate for controlled online evaluation and treat latent-factor or
 hybrid models as experiments that must demonstrate incremental value. The broader
-lesson is straightforward: in recurrent grocery demand, exact household history
-can be more valuable than a more complex latent representation.
+lesson is straightforward: in recurrent grocery demand, a household's exact
+purchase history can be more valuable than a compressed "taste profile" of a few
+learned numbers.
 
 ## Author Contributions
 
