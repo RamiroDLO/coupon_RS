@@ -677,13 +677,25 @@ the final submission.
 
 ## Responsible Use of AI (Coding) Tools
 
-Generative AI tools were used to explain course concepts, troubleshoot Python
-imports, review code structure, improve wording and help organize the report. Team
-members supplied the data, executed the experiments, selected the final task and
-protocol, checked all reported figures against saved CSV outputs, and retained
-responsibility for every methodological choice and conclusion. AI-generated
-suggestions were not treated as experimental evidence. No synthetic results were
-inserted, and the test set was not used to tune hyperparameters.
+We used AI assistants — Claude Code and ChatGPT — substantially throughout the
+project. They were used to explain recommender-systems concepts from the course;
+draft and repeatedly rewrite the report prose; write and debug the Python for the
+baselines, the ALS runners and the evaluation and summary scripts; typeset
+formulae; and check the report for internal consistency (numbers matching across
+sections, claims matching the saved results).
+
+The team retained full control of the substance. We selected the dataset, the task
+framing and the evaluation protocol; ran every experiment ourselves; checked every
+figure in the report against the saved CSV artifacts; and made every
+methodological and interpretive decision. AI suggestions were never treated as
+experimental evidence, no results were fabricated or synthetically generated, and
+the test set was never used to tune hyperparameters.
+
+The methodology follows the HSLU *Recommender Systems* course (Dr. Guang Lu). The
+baseline ladder, the split + candidate-set + filtering evaluation protocol, the
+weighted implicit-ALS formulation and the metric choices are taken from the
+Day 1–2 lectures and the accompanying lab notebooks; the report structure follows
+the course grading criteria.
 
 ## References
 
