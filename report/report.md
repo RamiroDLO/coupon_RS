@@ -282,6 +282,15 @@ returns to this.
 
 ## 4. Method — Method design and implementation (20%)
 
+This section describes the personalised model, **weighted implicit ALS**, and how
+it was configured. In plain terms, the model gives every household and every
+coupon-eligible product a short list of numbers — a position in a shared space of
+learned "taste" dimensions, worked out entirely from the record of who bought
+what — and predicts a household's interest in a product from how closely their two
+lists line up. The subsections cover the data it learns from (§4.1), the model and
+its training objective (§4.2), how its settings were chosen without touching the
+test weeks (§4.3), and the implementation (§4.4).
+
 ### 4.1 Product-level interaction representation
 
 All models learn from purchases in weeks 1–79 only. After filtering to
@@ -294,44 +303,83 @@ retained as a confidence signal. This distinction matters: a zero means
 "unobserved", not "disliked".
 
 The matrix contains 642,237 observed household–product pairs and has density
-0.66%. It is therefore suitable for a latent-factor method designed for
-positive-unlabelled data. Candidate products and all aggregate statistics are
+0.66%. Put concretely, this is a grid with one row per household and one column
+per coupon-eligible product in which only about one cell in 150 records a
+purchase — the model has to learn from a table that is almost entirely empty. It
+is therefore suitable for a latent-factor method designed for positive-unlabelled
+data. Candidate products and all aggregate statistics are
 computed from training only. Test purchases never affect the candidate pool,
 popularity counts, segment definitions or model parameters.
 
 ### 4.2 Weighted implicit ALS
 
 The advanced method is weighted implicit alternating least squares (ALS),
-following Hu, Koren and Volinsky [2]. In the implementation, observed purchase
+following Hu, Koren and Volinsky [2]. It is the standard weighted-implicit-feedback
+factoriser for purchase data; BPR and EASE suit the same feedback type and are
+considered as alternatives in §6.4. ALS represents every household and every
+product as a short vector of *latent factors* — a compact numeric "taste profile"
+— and predicts a household's interest in a product by how closely the two vectors
+line up. These factors are dimensions the model learns from shared purchase
+patterns, not named product attributes. In the implementation, observed purchase
 counts are scaled by alpha before fitting, while unobserved pairs retain the
 library's default background confidence. The method learns a low-dimensional
-household vector x_u and product vector y_i by minimizing
+household vector $\mathbf{x}_u$ and product vector $\mathbf{y}_i$ by minimizing
 
-L = sum_ui c_ui (p_ui - x_u^T y_i)^2 + lambda (sum_u ||x_u||^2 + sum_i ||y_i||^2).
+$$L=\sum_{u,i} c_{ui}\,(p_{ui}-\mathbf{x}_u^{\top}\mathbf{y}_i)^2+\lambda\left(\sum_u \|\mathbf{x}_u\|^2+\sum_i \|\mathbf{y}_i\|^2\right)$$
 
+where
+
+- $p_{ui}=1$ if household $u$ bought product $i$ during training and $0$ otherwise
+  — the *preference* the model tries to predict;
+- $c_{ui}=1+\alpha\,r_{ui}$ is the *confidence* in that value, with $r_{ui}$ the
+  number of times the household bought the product; a pair bought repeatedly
+  counts far more than an unobserved pair, which keeps confidence $1$;
+- $\mathbf{x}_u$ and $\mathbf{y}_i$ are the learned household and product factor
+  vectors (length four here);
+- $\lambda$ is the regularisation strength, which keeps the vectors small and
+  limits overfitting.
+
+The name *alternating least squares* describes the training: the model repeatedly
+re-estimates every household's profile from the current product profiles, then
+re-estimates every product's profile, and repeats until the profiles settle.
 Holding product vectors fixed makes the objective a regularized least-squares
 problem for each household; holding household vectors fixed gives the
 corresponding product update. Alternating these steps scales to the sparse matrix
 without sampling unobserved pairs. Recommendation scores are dot products
-x_u^T y_i. The five highest-scoring products in the fixed candidate set are
-returned. Previously purchased products remain eligible (exclude_seen=False)
-because grocery replenishment is a valid and commercially important
-recommendation; the exclude-seen condition is retained as a diagnostic, not the
-deployed task.
+$\mathbf{x}_u^{\top}\mathbf{y}_i$. The five highest-scoring products in the fixed
+candidate set are returned. Previously purchased products remain eligible
+(exclude_seen=False) because grocery replenishment is a valid and commercially
+important recommendation; the exclude-seen condition is retained as a diagnostic,
+not the deployed task.
 
 This is a deliberate departure from the common convention of removing previously
 purchased items from the candidate list. That convention suits domains such as
 film or news, where re-consumption is rare; in grocery, replenishment of known
 products is the majority of demand and a commercially valid recommendation. We
 therefore treat the include-seen setting as the deployed task and report the
-exclude-seen setting as a discovery diagnostic (§5.4).
+exclude-seen setting as a discovery diagnostic (§5.4). The two settings use the
+same trained model and the same ranked scores over all 39,132 candidates; the
+exclude-seen setting simply drops a household's prior purchases from its list
+before the top five are taken. A discovery-only recommender would therefore need
+no new model — only this filter.
 
 ### 4.3 Hyperparameter selection
 
-We evaluated eight deliberately small ALS configurations on validation weeks
-80–84. Factors varied over {4, 8, 12}, alpha over {5, 10}, regularization over
-{0.05, 0.1, 0.2}, and iterations over {10, 15}. The selection rule was fixed in
-advance: highest validation NDCG@5, then Recall@5 and coverage as tie-breakers.
+We evaluated **eight** ALS configurations on validation weeks 80–84 — a
+hand-picked set spanning factors {4, 8, 12}, alpha {5, 10}, regularization {0.05,
+0.1, 0.2} and iterations {10, 15}, rather than the full 36-point grid; all eight
+runs are recorded in `artifacts/als_validation_results.csv`. Each setting controls
+a different aspect of the model:
+
+- **factors** — the length of each household and product profile (how detailed the
+  learned representation is);
+- **alpha** — how strongly a repeatedly bought product outweighs an unobserved one
+  (it is the $\alpha$ in $c_{ui}=1+\alpha\,r_{ui}$);
+- **regularization** — how firmly the profile values are kept from growing large;
+- **iterations** — how many alternating adjustment rounds are run.
+
+The selection rule was fixed in advance: highest validation NDCG@5, then Recall@5
+and coverage as tie-breakers.
 The winning configuration used four factors, alpha 5, regularization 0.1 and ten
 iterations. It achieved validation NDCG@5 = 0.2049 and Recall@5 = 0.0410. The
 parameters were copied unchanged into the final test runner; no test result was
@@ -369,52 +417,49 @@ candidate set.
 | Metrics | NDCG@5 (headline), Recall@5, Hit-Rate@5; catalogue coverage as the trade-off metric |
 | Uncertainty | Percentile bootstrap 95% confidence intervals, 1,000 household resamples, seed 42 |
 
-The protocol consists of four explicit components. First, the temporal split
-mirrors deployment: train on weeks 1–79, select hyperparameters on weeks 80–84 and
-evaluate once on weeks 85–102. Second, the candidate set is closed: coupon-eligible
-products bought at least once during training after cleaning. Third, ground truth
-for household *u* is the set of candidate products actually purchased by that
-household in the evaluation window. Fourth, households with no relevant test
-product are excluded. This leaves 2,021 households in validation and 2,364 in
-test. The test window spans 18 weeks so that products with a multi-week
-repurchase cycle are still represented in each household's ground truth; a
-shorter window would mislabel regular buyers of slower-moving products as
-non-buyers.
+The table's choices are deliberate. The temporal split mirrors deployment — the
+model only ever sees the past — and the test weeks are scored **once**, after the
+hyperparameters are frozen. The 18-week test window is long enough that products
+with a multi-week repurchase cycle still appear in each household's ground truth;
+a shorter window would mislabel regular buyers of slower-moving products as
+non-buyers. After excluding households with no relevant test purchase, 2,021
+households remain in validation and 2,364 in test.
 
-Recommendations are lists of length K = 5. The relatively short list reflects
-limited customer attention and makes the output usable by a CRM manager. It also
-makes the task demanding: the median household has 66 relevant products in test,
-while the model may retrieve only five.
+Recommendations are lists of length K = 5: short enough for a CRM manager to act
+on, and demanding as a test — the median household buys 66 relevant products in
+the test window while the model may name only five.
 
 ### 5.2 Metrics
 
-For a recommendation list R_u^5 and relevant set G_u, Recall@5 is
-|R_u^5 intersect G_u| / |G_u|. It measures the share of future purchases
-recovered.
-NDCG@5 discounts correct products appearing lower in the ranking and normalizes by
-the ideal DCG for each household. Hit Rate@5 is one when at least one recommended
-product is purchased and zero otherwise. Catalogue coverage is the number of
-distinct recommended products divided by the 39,132 candidates. Recall and NDCG
-are macro-averaged across households. Percentile bootstrap 95% confidence
-intervals use 1,000 household resamples with seed 42: each resample redraws the
-scored households with replacement and recomputes the mean, and the interval runs
-from the 2.5th to the 97.5th percentile of those means. Two methods whose
-intervals do not overlap differ by more than sampling noise; overlapping intervals
-mean the difference is not established. All methods rank the full
-candidate set of 39,132 products rather than a sampled subset of negatives, so
-metric values are directly comparable across methods and are not inflated by an
-easier candidate pool.
+Write $R_u$ for a household's five recommendations and $G_u$ for the candidate
+products it bought in the test weeks. The four metrics are:
 
-We also report Recall@5 by household activity tier (light, mid and heavy) and by
-warm/cold status. The activity tiers are equal-size thirds of the scored
-households, ranked by number of training-period shopping trips, and are distinct
-from the small "barely shops" group flagged in §2.4. Because the tiers need a
-training-period trip count, two of the 2,364 scored households (which have no
-recorded training basket) fall outside them, so the tier analysis covers 2,362;
-the headline metrics still use all 2,364. Activity-stratified results test whether
-a headline average hides systematic failure. Cold-start results are
-descriptive only because just five test households have no prior eligible-product
-history.
+- **Recall@5** $= |R_u \cap G_u| / |G_u|$ — the share of the household's later
+  purchases the five recommendations recover.
+- **NDCG@5** — rewards correct products, and rewards them more the nearer the top
+  of the list they appear; normalised so a perfect five-item list scores 1 and one
+  with no hits scores 0.
+- **Hit-Rate@5** — 1 if at least one recommended product was bought, otherwise 0.
+- **Catalogue coverage** — distinct products recommended across all households,
+  divided by the 39,132 candidates.
+
+Recall and NDCG are macro-averaged (a plain mean of the per-household values).
+**95% confidence intervals** come from a percentile bootstrap: the scored
+households are re-drawn with replacement 1,000 times (seed 42) and the mean
+re-computed each time; the interval is the 2.5th–97.5th percentile of those means.
+Two methods whose intervals do not overlap differ by more than sampling noise;
+overlapping intervals mean the difference is not established. Every method ranks
+the **full** set of 39,132 candidates, not a sampled shortlist, so the scores are
+directly comparable and not inflated by an easy candidate pool.
+
+We also report Recall@5 by household activity tier (light, mid, heavy) and by
+warm/cold status, to check whether a headline average hides a failing group. The
+tiers are equal-size thirds of the scored households ranked by training-period
+trip count, distinct from the small "barely shops" group of §2.4; two scored
+households have no recorded training basket and fall outside the tiers, so the
+tier analysis covers 2,362 while the headline metrics use all 2,364. Cold-start
+results are descriptive only — just five test households have no prior
+eligible-product history.
 
 ### 5.3 Final test results
 
@@ -430,7 +475,7 @@ interval [0.029, 0.034] overlaps popularity's [0.031, 0.036], so there the two a
 statistically indistinguishable. The repeat-buy Recall confidence interval [0.0482,
 0.0548] is entirely above the popularity interval [0.0311, 0.0363].
 
-![Figure 1. Test NDCG@5 by model (include-seen condition).](figures/figure1_test_ndcg.png)
+<img src="figures/figure1_test_ndcg.png" alt="Figure 1. Test NDCG@5 by model (include-seen condition)." width="480" />
 
 *Figure 1. Test NDCG@5 by model (include-seen condition).*
 
@@ -459,8 +504,8 @@ Repeat purchase outperforms ALS in every activity tier. Recall@5 for repeat
 purchase is 0.0654/0.0514/0.0380 for light/mid/heavy households; ALS achieves
 0.0462/0.0296/0.0205. Recall falls with activity because heavy shoppers buy larger
 and more varied test baskets, so five recommendations cover a smaller fraction of
-their ground truth. This denominator effect cautions against reading the tiers as
-a simple measure of household modelability.
+their ground truth. The lower recall for heavy shoppers is therefore partly an
+artefact of basket size, not proof that they are harder to predict.
 
 The exclude-seen diagnostic confirms that novel-item recommendation is much
 harder. Repeat purchase necessarily falls back to popularity and obtains NDCG@5 =
@@ -470,12 +515,13 @@ simple rules. Personalisation therefore adds nothing on discovery either: ALS do
 not beat the baselines under any condition tested. Of the products the recommender
 is scored on, 61.4% are new to the household, and the repeat 38.6% is much more
 predictable.
-This score should be read as a lower bound on discovery quality rather than a true
-measure: offline, a recommended new product only counts as correct if the
-household happened to buy it anyway during the test weeks, so a good suggestion
-the household was never exposed to scores the same as a poor one. Future work
-should therefore evaluate replenishment and discovery as separate product
-objectives instead of forcing one ranking to serve both.
+
+The exclude-seen score should be read as a lower bound on discovery quality rather
+than a true measure: offline, a recommended new product only counts as correct if
+the household happened to buy it anyway during the test weeks, so a good
+suggestion the household was never exposed to scores the same as a poor one.
+Future work should therefore evaluate replenishment and discovery as separate
+product objectives instead of forcing one ranking to serve both.
 
 ## 6. Discussion, limitations and responsible use (10%)
 
@@ -487,68 +533,89 @@ repeat-purchase baseline, and it provides less coverage. It also underperforms
 global popularity. This is an informative result rather than a failed experiment.
 The course principle that model complexity must earn its place is borne out
 empirically: a transparent rule based on exact personal history is more useful
-here than a compact latent-factor representation.
+here than a compact latent-factor representation (each household reduced to a few
+numbers).
 
-Several mechanisms may explain the result. Grocery purchasing is strongly habitual
-at SKU level; substituting latent similarity for exact identity can hurt
-replenishment. The candidate catalogue is extremely large relative to 2,500
-households. A four-factor model is regularized but may be too coarse, while
-higher-dimensional configurations produced worse validation NDCG. Finally,
-frequency-based confidence may give greater weight to repeatedly purchased staples
-and concentrate recommendations, although this mechanism was not tested directly.
+Several mechanisms may explain the result. Grocery buying is strongly habitual at
+the level of the individual product — the exact brand and pack, or *SKU* — and
+replacing that exact product with a "nearby" one, which is what a taste-profile
+match does, can hurt at predicting re-purchases. The catalogue is also very large
+relative to only 2,500 households. The chosen four-factor model (four numbers per
+profile) is regularised but may be too coarse, yet profiles with more numbers
+scored worse on validation. Finally, the frequency-based confidence weighting —
+counting a product bought ten times far more heavily than one bought once — may
+make ALS over-focus on a household's staples and narrow its recommendations,
+though this was not tested directly.
 
 ### 6.2 Limitations and risks
 
-The panel is observational and limited to 2,500 loyalty-card households at one US
-retailer. Purchases are implicit feedback: missing interactions may reflect
-dislike, lack of awareness or exposure, lack of availability, or lack of need. The
-preliminary campaign analysis is additionally affected by logging and exposure
-bias because the retailer's previous policy determined which households received
-each campaign. Therefore, non-redemption cannot be interpreted as rejection or
-compared directly with the product-ranking metrics. The evaluation measures
-purchase prediction, not coupon incrementality. A recommended product might have
-been purchased without the coupon; offline relevance therefore cannot establish
-causal lift or profitability.
+Several limitations bound what these results can claim:
 
-The closed candidate rule excludes coupon-eligible products without training
-purchases and cannot assess true cold-item discovery. The findings are therefore
-conditional on this candidate set and the frozen K=5 include-seen protocol. The
-test period contains week 92 as an unusual high-sales week, although aggregate
-test sales are only 0.59 standard deviations above the full-period weekly mean.
-The temporal split reduces leakage, but a single test window cannot demonstrate
-stability across periods. Demographics cover 32% of households and are strongly
-non-random with respect to spend, so they were excluded. Cold-household
-performance is based on five cases and should not be generalized. Coverage
-measures exposure breadth but not diversity within a household's list, novelty,
-benefit distribution, margin, stock availability or coupon cost. The validation
-window (five weeks) and the test window (eighteen weeks) also differ in length, so
-validation and test scores are not directly comparable; validation was used only
-to rank configurations, not to estimate test performance. Finally, the confidence
-intervals capture sampling noise on this one panel only; they say nothing about
-how the results would hold across other periods, retailers or populations.
+- **One panel, one retailer.** The data is 2,500 loyalty-card households at a
+  single US grocer, observed rather than experimented on, so the results may not
+  carry to other retailers or shopper populations.
+- **A non-purchase is not a "no".** Purchases are implicit feedback: a product a
+  household never bought may simply have gone unseen, been out of stock, or not
+  been needed — not disliked.
+- **The campaign figures carry the retailer's own bias.** The §2.4 context numbers
+  (12% redemption rate, 2.5× category over-spend) come from campaigns where the
+  retailer chose who to contact, so a non-redemption cannot be read as a rejection
+  and those figures cannot be compared directly with the product-ranking metrics.
+- **This is prediction, not causation.** The evaluation measures whether a
+  household later buys a product, not whether the *coupon* caused the purchase. A
+  recommended product might have been bought anyway, so the results cannot
+  establish incremental sales (extra sales caused by the coupon) or profitability.
+- **No true new-product discovery.** The candidate set excludes coupon-eligible
+  products that no household bought in training, so the study cannot test
+  recommendations of genuinely new items. All findings are conditional on this
+  menu and the K = 5 include-seen setup.
+- **One unusual test week.** Week 92 has higher-than-normal sales, but only mildly
+  so — 0.59 standard deviations above the two-year weekly average, i.e. within
+  normal fluctuation.
+- **A single test window.** The past/future split limits *leakage* (the model
+  seeing data from the period it is scored on), but one window cannot show the
+  result is stable across different periods.
+- **Demographics excluded.** The age/income/family file covers only 32% of
+  households, and those households spend far more than the rest, so using it would
+  bias the model toward that third.
+- **Cold-start is anecdotal.** Only five test households have no prior history —
+  far too few to draw conclusions from.
+- **Coverage is a narrow lens.** It measures how much of the catalogue is ever
+  recommended, not within-list variety, novelty, how benefits are distributed,
+  margin, stock availability, or coupon cost.
+- **Validation and test are not directly comparable.** The validation window is
+  five weeks and the test window eighteen, so their scores differ in scale;
+  validation was used only to rank settings, not to predict the test score.
+- **The confidence intervals are local.** They capture sampling noise within this
+  one panel only — not how the results would move across other periods, retailers
+  or populations.
 
 ### 6.3 Responsible deployment
 
-A production system should not automatically issue coupons from these rankings.
-The list should remain a decision aid for a CRM manager and pass eligibility,
-inventory, margin, coupon-cost, frequency-cap and legal checks. Recommending only
-habitual products could subsidize purchases that would have occurred anyway and
-concentrate benefits on already valuable customers. Conversely, a pure discovery
-objective could waste customer attention and discount budget.
+**Keep a human in the loop.** A production system should not automatically issue
+coupons from these rankings. The list should stay a decision aid for a CRM manager
+and pass eligibility, inventory, margin, coupon-cost, frequency-cap (a limit on
+how often one customer is contacted) and legal checks. Recommending only habitual
+products could subsidise purchases that would have happened anyway and concentrate
+benefits on already-valuable customers; a pure discovery objective could instead
+waste customer attention and discount budget.
 
-Repeat purchase is the leading candidate for controlled online evaluation, while
-ALS or a hybrid should first demonstrate stronger offline evidence. A randomized
-A/B test should compare the candidate policy with business-as-usual targeting and
-measure incremental redemption, purchases and margin net of coupon cost, together
-with opt-outs and benefit distribution across household groups. Performance,
-catalogue exposure and temporal drift should be monitored after launch because
-behaviour, prices, inventory and product availability may change.
+**Test it live before trusting it.** Repeat purchase is the leading candidate for
+a controlled online evaluation; ALS or a hybrid should first show stronger offline
+evidence. A randomised A/B test should compare the recommender's coupons against
+business-as-usual targeting and measure incremental redemption, purchases and
+margin net of coupon cost (profit after subtracting what the coupons cost),
+together with opt-outs and how benefits are distributed across household groups.
+After launch, accuracy, catalogue exposure and temporal drift (the patterns
+changing over time) should be monitored, because behaviour, prices, inventory and
+availability all move.
 
-The data use coded household identifiers but still describe detailed household
-behaviour. In a production setting, access should be restricted, identifiers
-minimized, retention bounded and subgroup reporting aggregated. Protected
-characteristics or sensitive demographic proxies should not determine coupon value
-or eligibility without an explicit fairness review.
+**Protect the data.** The household identifiers are coded, but the behaviour they
+describe is detailed. In a production setting, access should be restricted,
+identifiers minimised, retention bounded and subgroup reporting aggregated.
+Protected characteristics — or demographic proxies that stand in for them, such as
+a postcode that tracks income — should not set coupon value or eligibility without
+an explicit fairness review.
 
 ### 6.4 Future work
 
@@ -581,27 +648,55 @@ improve on the baselines in a discovery-only (exclude-seen) condition either. Th
 practical recommendation is therefore to retain the simple personalized baseline
 as the candidate for controlled online evaluation and treat latent-factor or
 hybrid models as experiments that must demonstrate incremental value. The broader
-lesson is straightforward: in recurrent grocery demand, exact household history
-can be more valuable than a more complex latent representation.
+lesson is straightforward: in recurrent grocery demand, a household's exact
+purchase history can be more valuable than a compressed "taste profile" of a few
+learned numbers.
 
 ## Author Contributions
 
-Ramiro owned the frozen evaluation harness and the core method/evaluation
-implementation. Mayra led problem framing, dataset and feedback analysis, related
-work synthesis and report integration. Ana led results analysis, beyond-accuracy
-metrics and visual interpretation. Fatima led limitations, responsible-use
-analysis, future work and the final editorial review. All members reviewed the
-research question, experimental choices, conclusions and final submission.
+Ramiro built the project infrastructure: the frozen evaluation harness, shared
+configuration and data loader, the evaluation-freeze protocol, and the first
+exploratory notebook and pitch deck. He also implemented the earlier campaign- and
+coupon-level pipelines that informed the final task choice.
+
+Ana built the product-recommendation exploratory analysis, the baseline suite and
+its evaluator, wrote the Problem, Dataset and Baseline sections, and carried out
+the cross-section consistency and clarity pass on the full report. She added the
+exclude-seen discovery evaluation for ALS and its stored confidence intervals.
+
+Mayra implemented the weighted implicit ALS model and its validation and test
+runners, produced the results table and Figure 1, and wrote the Method and
+Evaluation sections.
+
+Fatima wrote the Discussion, Limitations, Responsible Use and Future Work sections,
+built the responsible-use evidence script, and led the editorial review of the
+full report.
+
+Fatima, Mayra and Ramiro prepared the class presentation. All members agreed the
+research question, task framing, evaluation protocol and conclusions, and reviewed
+the final submission.
 
 ## Responsible Use of AI (Coding) Tools
 
-Generative AI tools were used to explain course concepts, troubleshoot Python
-imports, review code structure, improve wording and help organize the report. Team
-members supplied the data, executed the experiments, selected the final task and
-protocol, checked all reported figures against saved CSV outputs, and retained
-responsibility for every methodological choice and conclusion. AI-generated
-suggestions were not treated as experimental evidence. No synthetic results were
-inserted, and the test set was not used to tune hyperparameters.
+We used AI assistants — Claude Code and ChatGPT — substantially throughout the
+project. They were used to explain recommender-systems concepts from the course;
+draft and repeatedly rewrite the report prose; write and debug the Python for the
+baselines, the ALS runners and the evaluation and summary scripts; typeset
+formulae; and check the report for internal consistency (numbers matching across
+sections, claims matching the saved results).
+
+The team retained full control of the substance. We selected the dataset, the task
+framing and the evaluation protocol; ran every experiment ourselves; checked every
+figure in the report against the saved CSV artifacts; and made every
+methodological and interpretive decision. AI suggestions were never treated as
+experimental evidence, no results were fabricated or synthetically generated, and
+the test set was never used to tune hyperparameters.
+
+The methodology follows the HSLU *Recommender Systems* course (Dr. Guang Lu). The
+baseline ladder, the split + candidate-set + filtering evaluation protocol, the
+weighted implicit-ALS formulation and the metric choices are taken from the
+Day 1–2 lectures and the accompanying lab notebooks; the report structure follows
+the course grading criteria.
 
 ## References
 
