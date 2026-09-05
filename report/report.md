@@ -312,6 +312,18 @@ product vector $\mathbf{y}_i$ by minimizing
 
 $$L=\sum_{u,i} c_{ui}\,(p_{ui}-\mathbf{x}_u^{\top}\mathbf{y}_i)^2+\lambda\left(\sum_u \|\mathbf{x}_u\|^2+\sum_i \|\mathbf{y}_i\|^2\right)$$
 
+where
+
+- $p_{ui}=1$ if household $u$ bought product $i$ during training and $0$ otherwise
+  — the *preference* the model tries to predict;
+- $c_{ui}=1+\alpha\,r_{ui}$ is the *confidence* in that value, with $r_{ui}$ the
+  number of times the household bought the product; a pair bought repeatedly
+  counts far more than an unobserved pair, which keeps confidence $1$;
+- $\mathbf{x}_u$ and $\mathbf{y}_i$ are the learned household and product factor
+  vectors (length four here);
+- $\lambda$ is the regularisation strength, which keeps the vectors small and
+  limits overfitting.
+
 Holding product vectors fixed makes the objective a regularized least-squares
 problem for each household; holding household vectors fixed gives the
 corresponding product update. Alternating these steps scales to the sparse matrix
