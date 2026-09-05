@@ -302,10 +302,13 @@ popularity counts, segment definitions or model parameters.
 ### 4.2 Weighted implicit ALS
 
 The advanced method is weighted implicit alternating least squares (ALS),
-following Hu, Koren and Volinsky [2]. ALS represents every household and every
+following Hu, Koren and Volinsky [2]. It is the standard weighted-implicit-feedback
+factoriser for purchase data; BPR and EASE suit the same feedback type and are
+considered as alternatives in §6.4. ALS represents every household and every
 product as a short vector of *latent factors* — a compact numeric "taste profile"
 — and predicts a household's interest in a product by how closely the two vectors
-line up. In the implementation, observed purchase counts are scaled by alpha
+line up. These factors are dimensions the model learns from shared purchase
+patterns, not named product attributes. In the implementation, observed purchase counts are scaled by alpha
 before fitting, while unobserved pairs retain the library's default background
 confidence. The method learns a low-dimensional household vector $\mathbf{x}_u$ and
 product vector $\mathbf{y}_i$ by minimizing
