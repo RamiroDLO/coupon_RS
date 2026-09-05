@@ -364,9 +364,18 @@ exclude-seen setting as a discovery diagnostic (§5.4).
 We evaluated **eight** ALS configurations on validation weeks 80–84 — a
 hand-picked set spanning factors {4, 8, 12}, alpha {5, 10}, regularization {0.05,
 0.1, 0.2} and iterations {10, 15}, rather than the full 36-point grid; all eight
-runs are recorded in `artifacts/als_validation_results.csv`. The selection rule
-was fixed in advance: highest validation NDCG@5, then Recall@5 and coverage as
-tie-breakers.
+runs are recorded in `artifacts/als_validation_results.csv`. Each setting controls
+a different aspect of the model:
+
+- **factors** — the length of each household and product profile (how detailed the
+  learned representation is);
+- **alpha** — how strongly a repeatedly bought product outweighs an unobserved one
+  (it is the $\alpha$ in $c_{ui}=1+\alpha\,r_{ui}$);
+- **regularization** — how firmly the profile values are kept from growing large;
+- **iterations** — how many alternating adjustment rounds are run.
+
+The selection rule was fixed in advance: highest validation NDCG@5, then Recall@5
+and coverage as tie-breakers.
 The winning configuration used four factors, alpha 5, regularization 0.1 and ten
 iterations. It achieved validation NDCG@5 = 0.2049 and Recall@5 = 0.0410. The
 parameters were copied unchanged into the final test runner; no test result was
