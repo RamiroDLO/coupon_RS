@@ -431,33 +431,35 @@ the test window while the model may name only five.
 
 ### 5.2 Metrics
 
-For a recommendation list R_u^5 and relevant set G_u, Recall@5 is
-|R_u^5 intersect G_u| / |G_u|. It measures the share of future purchases
-recovered.
-NDCG@5 discounts correct products appearing lower in the ranking and normalizes by
-the ideal DCG for each household. Hit Rate@5 is one when at least one recommended
-product is purchased and zero otherwise. Catalogue coverage is the number of
-distinct recommended products divided by the 39,132 candidates. Recall and NDCG
-are macro-averaged across households. Percentile bootstrap 95% confidence
-intervals use 1,000 household resamples with seed 42: each resample redraws the
-scored households with replacement and recomputes the mean, and the interval runs
-from the 2.5th to the 97.5th percentile of those means. Two methods whose
-intervals do not overlap differ by more than sampling noise; overlapping intervals
-mean the difference is not established. All methods rank the full
-candidate set of 39,132 products rather than a sampled subset of negatives, so
-metric values are directly comparable across methods and are not inflated by an
-easier candidate pool.
+Write $R_u$ for a household's five recommendations and $G_u$ for the candidate
+products it bought in the test weeks. The four metrics are:
 
-We also report Recall@5 by household activity tier (light, mid and heavy) and by
-warm/cold status. The activity tiers are equal-size thirds of the scored
-households, ranked by number of training-period shopping trips, and are distinct
-from the small "barely shops" group flagged in §2.4. Because the tiers need a
-training-period trip count, two of the 2,364 scored households (which have no
-recorded training basket) fall outside them, so the tier analysis covers 2,362;
-the headline metrics still use all 2,364. Activity-stratified results test whether
-a headline average hides systematic failure. Cold-start results are
-descriptive only because just five test households have no prior eligible-product
-history.
+- **Recall@5** $= |R_u \cap G_u| / |G_u|$ — the share of the household's later
+  purchases the five recommendations recover.
+- **NDCG@5** — rewards correct products, and rewards them more the nearer the top
+  of the list they appear; normalised so a perfect five-item list scores 1 and one
+  with no hits scores 0.
+- **Hit-Rate@5** — 1 if at least one recommended product was bought, otherwise 0.
+- **Catalogue coverage** — distinct products recommended across all households,
+  divided by the 39,132 candidates.
+
+Recall and NDCG are macro-averaged (a plain mean of the per-household values).
+**95% confidence intervals** come from a percentile bootstrap: the scored
+households are re-drawn with replacement 1,000 times (seed 42) and the mean
+re-computed each time; the interval is the 2.5th–97.5th percentile of those means.
+Two methods whose intervals do not overlap differ by more than sampling noise;
+overlapping intervals mean the difference is not established. Every method ranks
+the **full** set of 39,132 candidates, not a sampled shortlist, so the scores are
+directly comparable and not inflated by an easy candidate pool.
+
+We also report Recall@5 by household activity tier (light, mid, heavy) and by
+warm/cold status, to check whether a headline average hides a failing group. The
+tiers are equal-size thirds of the scored households ranked by training-period
+trip count, distinct from the small "barely shops" group of §2.4; two scored
+households have no recorded training basket and fall outside the tiers, so the
+tier analysis covers 2,362 while the headline metrics use all 2,364. Cold-start
+results are descriptive only — just five test households have no prior
+eligible-product history.
 
 ### 5.3 Final test results
 
