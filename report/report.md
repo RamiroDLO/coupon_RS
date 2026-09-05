@@ -357,7 +357,11 @@ purchased items from the candidate list. That convention suits domains such as
 film or news, where re-consumption is rare; in grocery, replenishment of known
 products is the majority of demand and a commercially valid recommendation. We
 therefore treat the include-seen setting as the deployed task and report the
-exclude-seen setting as a discovery diagnostic (§5.4).
+exclude-seen setting as a discovery diagnostic (§5.4). The two settings use the
+same trained model and the same ranked scores over all 39,132 candidates; the
+exclude-seen setting simply drops a household's prior purchases from its list
+before the top five are taken. A discovery-only recommender would therefore need
+no new model — only this filter.
 
 ### 4.3 Hyperparameter selection
 
