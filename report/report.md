@@ -417,22 +417,17 @@ candidate set.
 | Metrics | NDCG@5 (headline), Recall@5, Hit-Rate@5; catalogue coverage as the trade-off metric |
 | Uncertainty | Percentile bootstrap 95% confidence intervals, 1,000 household resamples, seed 42 |
 
-The protocol consists of four explicit components. First, the temporal split
-mirrors deployment: train on weeks 1–79, select hyperparameters on weeks 80–84 and
-evaluate once on weeks 85–102. Second, the candidate set is closed: coupon-eligible
-products bought at least once during training after cleaning. Third, ground truth
-for household *u* is the set of candidate products actually purchased by that
-household in the evaluation window. Fourth, households with no relevant test
-product are excluded. This leaves 2,021 households in validation and 2,364 in
-test. The test window spans 18 weeks so that products with a multi-week
-repurchase cycle are still represented in each household's ground truth; a
-shorter window would mislabel regular buyers of slower-moving products as
-non-buyers.
+The table's choices are deliberate. The temporal split mirrors deployment — the
+model only ever sees the past — and the test weeks are scored **once**, after the
+hyperparameters are frozen. The 18-week test window is long enough that products
+with a multi-week repurchase cycle still appear in each household's ground truth;
+a shorter window would mislabel regular buyers of slower-moving products as
+non-buyers. After excluding households with no relevant test purchase, 2,021
+households remain in validation and 2,364 in test.
 
-Recommendations are lists of length K = 5. The relatively short list reflects
-limited customer attention and makes the output usable by a CRM manager. It also
-makes the task demanding: the median household has 66 relevant products in test,
-while the model may retrieve only five.
+Recommendations are lists of length K = 5: short enough for a CRM manager to act
+on, and demanding as a test — the median household buys 66 relevant products in
+the test window while the model may name only five.
 
 ### 5.2 Metrics
 
