@@ -592,26 +592,30 @@ Several limitations bound what these results can claim:
 
 ### 6.3 Responsible deployment
 
-A production system should not automatically issue coupons from these rankings.
-The list should remain a decision aid for a CRM manager and pass eligibility,
-inventory, margin, coupon-cost, frequency-cap and legal checks. Recommending only
-habitual products could subsidize purchases that would have occurred anyway and
-concentrate benefits on already valuable customers. Conversely, a pure discovery
-objective could waste customer attention and discount budget.
+**Keep a human in the loop.** A production system should not automatically issue
+coupons from these rankings. The list should stay a decision aid for a CRM manager
+and pass eligibility, inventory, margin, coupon-cost, frequency-cap (a limit on
+how often one customer is contacted) and legal checks. Recommending only habitual
+products could subsidise purchases that would have happened anyway and concentrate
+benefits on already-valuable customers; a pure discovery objective could instead
+waste customer attention and discount budget.
 
-Repeat purchase is the leading candidate for controlled online evaluation, while
-ALS or a hybrid should first demonstrate stronger offline evidence. A randomized
-A/B test should compare the candidate policy with business-as-usual targeting and
-measure incremental redemption, purchases and margin net of coupon cost, together
-with opt-outs and benefit distribution across household groups. Performance,
-catalogue exposure and temporal drift should be monitored after launch because
-behaviour, prices, inventory and product availability may change.
+**Test it live before trusting it.** Repeat purchase is the leading candidate for
+a controlled online evaluation; ALS or a hybrid should first show stronger offline
+evidence. A randomised A/B test should compare the recommender's coupons against
+business-as-usual targeting and measure incremental redemption, purchases and
+margin net of coupon cost (profit after subtracting what the coupons cost),
+together with opt-outs and how benefits are distributed across household groups.
+After launch, accuracy, catalogue exposure and temporal drift (the patterns
+changing over time) should be monitored, because behaviour, prices, inventory and
+availability all move.
 
-The data use coded household identifiers but still describe detailed household
-behaviour. In a production setting, access should be restricted, identifiers
-minimized, retention bounded and subgroup reporting aggregated. Protected
-characteristics or sensitive demographic proxies should not determine coupon value
-or eligibility without an explicit fairness review.
+**Protect the data.** The household identifiers are coded, but the behaviour they
+describe is detailed. In a production setting, access should be restricted,
+identifiers minimised, retention bounded and subgroup reporting aggregated.
+Protected characteristics — or demographic proxies that stand in for them, such as
+a postcode that tracks income — should not set coupon value or eligibility without
+an explicit fairness review.
 
 ### 6.4 Future work
 
