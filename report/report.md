@@ -475,7 +475,7 @@ interval [0.029, 0.034] overlaps popularity's [0.031, 0.036], so there the two a
 statistically indistinguishable. The repeat-buy Recall confidence interval [0.0482,
 0.0548] is entirely above the popularity interval [0.0311, 0.0363].
 
-![Figure 1. Test NDCG@5 by model (include-seen condition).](figures/figure1_test_ndcg.png)
+<img src="figures/figure1_test_ndcg.png" alt="Figure 1. Test NDCG@5 by model (include-seen condition)." width="480" />
 
 *Figure 1. Test NDCG@5 by model (include-seen condition).*
 
