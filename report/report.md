@@ -406,8 +406,11 @@ easier candidate pool.
 We also report Recall@5 by household activity tier (light, mid and heavy) and by
 warm/cold status. The activity tiers are equal-size thirds of the scored
 households, ranked by number of training-period shopping trips, and are distinct
-from the small "barely shops" group flagged in §2.4. Activity-stratified results
-test whether a headline average hides systematic failure. Cold-start results are
+from the small "barely shops" group flagged in §2.4. Because the tiers need a
+training-period trip count, two of the 2,364 scored households (which have no
+recorded training basket) fall outside them, so the tier analysis covers 2,362;
+the headline metrics still use all 2,364. Activity-stratified results test whether
+a headline average hides systematic failure. Cold-start results are
 descriptive only because just five test households have no prior eligible-product
 history.
 
