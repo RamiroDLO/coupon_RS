@@ -302,10 +302,13 @@ popularity counts, segment definitions or model parameters.
 ### 4.2 Weighted implicit ALS
 
 The advanced method is weighted implicit alternating least squares (ALS),
-following Hu, Koren and Volinsky [2]. In the implementation, observed purchase
-counts are scaled by alpha before fitting, while unobserved pairs retain the
-library's default background confidence. The method learns a low-dimensional
-household vector x_u and product vector y_i by minimizing
+following Hu, Koren and Volinsky [2]. ALS represents every household and every
+product as a short vector of *latent factors* — a compact numeric "taste profile"
+— and predicts a household's interest in a product by how closely the two vectors
+line up. In the implementation, observed purchase counts are scaled by alpha
+before fitting, while unobserved pairs retain the library's default background
+confidence. The method learns a low-dimensional household vector x_u and product
+vector y_i by minimizing
 
 L = sum_ui c_ui (p_ui - x_u^T y_i)^2 + lambda (sum_u ||x_u||^2 + sum_i ||y_i||^2).
 
