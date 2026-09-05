@@ -303,8 +303,11 @@ retained as a confidence signal. This distinction matters: a zero means
 "unobserved", not "disliked".
 
 The matrix contains 642,237 observed household–product pairs and has density
-0.66%. It is therefore suitable for a latent-factor method designed for
-positive-unlabelled data. Candidate products and all aggregate statistics are
+0.66%. Put concretely, this is a grid with one row per household and one column
+per coupon-eligible product in which only about one cell in 150 records a
+purchase — the model has to learn from a table that is almost entirely empty. It
+is therefore suitable for a latent-factor method designed for positive-unlabelled
+data. Candidate products and all aggregate statistics are
 computed from training only. Test purchases never affect the candidate pool,
 popularity counts, segment definitions or model parameters.
 
