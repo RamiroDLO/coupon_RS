@@ -416,10 +416,10 @@ history.
 
 ### 5.3 Final test results
 
-Table 2 reports the include-seen condition that matches grocery replenishment.
-Repeat purchase is the clear winner: Recall@5 = 0.0512, NDCG@5 = 0.5758 and Hit
-Rate@5 = 0.8579. ALS reaches Recall@5 = 0.0318, NDCG@5 = 0.3468 and Hit Rate@5 =
-0.7665. Thus ALS does not beat either the strongest baseline or the
+The table below reports the include-seen condition that matches grocery
+replenishment. Repeat purchase is the clear winner: Recall@5 = 0.0512, NDCG@5 =
+0.5758 and Hit Rate@5 = 0.8579. ALS reaches Recall@5 = 0.0318, NDCG@5 = 0.3468 and
+Hit Rate@5 = 0.7665. Thus ALS does not beat either the strongest baseline or the
 global-popularity reference. Relative to repeat purchase, ALS is 38.0% lower in
 Recall and 39.8% lower in NDCG. ALS's NDCG@5 interval [0.336, 0.357] lies entirely
 below both the popularity reference [0.385, 0.407] and repeat purchase [0.562,
