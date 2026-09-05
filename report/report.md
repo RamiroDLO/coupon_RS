@@ -653,12 +653,27 @@ can be more valuable than a more complex latent representation.
 
 ## Author Contributions
 
-Ramiro owned the frozen evaluation harness and the core method/evaluation
-implementation. Mayra led problem framing, dataset and feedback analysis, related
-work synthesis and report integration. Ana led results analysis, beyond-accuracy
-metrics and visual interpretation. Fatima led limitations, responsible-use
-analysis, future work and the final editorial review. All members reviewed the
-research question, experimental choices, conclusions and final submission.
+Ramiro built the project infrastructure: the frozen evaluation harness, shared
+configuration and data loader, the evaluation-freeze protocol, and the first
+exploratory notebook and pitch deck. He also implemented the earlier campaign- and
+coupon-level pipelines that informed the final task choice.
+
+Ana built the product-recommendation exploratory analysis, the baseline suite and
+its evaluator, wrote the Problem, Dataset and Baseline sections, and carried out
+the cross-section consistency and clarity pass on the full report. She added the
+exclude-seen discovery evaluation for ALS and its stored confidence intervals.
+
+Mayra implemented the weighted implicit ALS model and its validation and test
+runners, produced the results table and Figure 1, and wrote the Method and
+Evaluation sections.
+
+Fatima wrote the Discussion, Limitations, Responsible Use and Future Work sections,
+built the responsible-use evidence script, and led the editorial review of the
+full report.
+
+Fatima, Mayra and Ramiro prepared the class presentation. All members agreed the
+research question, task framing, evaluation protocol and conclusions, and reviewed
+the final submission.
 
 ## Responsible Use of AI (Coding) Tools
 
