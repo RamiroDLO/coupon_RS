@@ -258,9 +258,9 @@ accuracy-versus-coverage trade-off. That tension appears only with the
 latent-factor model in §5, where ALS buys a little extra coverage at a clear cost
 in relevance.
 
-Every baseline also does better for light shoppers than for heavy ones — for
-example, repeat purchase reaches Recall@5 ≈ 0.07 for the least active third of
-households against ≈ 0.035 for the most active third. A light shopper buys few
+Every non-random baseline also does better for light shoppers than for heavy ones
+— for example, repeat purchase reaches Recall@5 ≈ 0.07 for the least active third
+of households against ≈ 0.035 for the most active third. A light shopper buys few
 products, so a five-item list covers a larger share of them.
 
 ### 3.4 The bar to clear
