@@ -149,11 +149,11 @@ each one points to a modelling choice:
   the test period and can be scored, and **99.8%** of them have prior history.
 - **The test period is a demanding target.** We do not train or tune on the test
   weeks, but we can describe what is in them. In that window a household buys about
-  **66** different products the recommender could offer a coupon on, and **about
-  61% are ones it had never bought before** — so a recommender that only replays
-  past favourites would miss most of what happens. Because each household's target
-  is large, absolute Recall figures will be small; the comparison *between*
-  methods is what matters (see §5).
+  **66** products from the recommender's candidate set (69 across all
+  coupon-eligible products it bought), and **about 61% are ones it had never
+  bought before** — so a recommender that only replays past favourites would miss
+  most of what happens. Because each household's target is large, absolute Recall
+  figures will be small; the comparison *between* methods is what matters (see §5).
 - **A purchase is a broadly trustworthy sign of preference.** We score methods on
   what households bought in the test period, so "bought it" should mean "wanted
   it" rather than "it was promoted". Only about **1.6%** of the coupon-eligible
