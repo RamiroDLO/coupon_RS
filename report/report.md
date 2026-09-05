@@ -339,6 +339,9 @@ where
 - $\lambda$ is the regularisation strength, which keeps the vectors small and
   limits overfitting.
 
+The name *alternating least squares* describes the training: the model repeatedly
+re-estimates every household's profile from the current product profiles, then
+re-estimates every product's profile, and repeats until the profiles settle.
 Holding product vectors fixed makes the objective a regularized least-squares
 problem for each household; holding household vectors fixed gives the
 corresponding product update. Alternating these steps scales to the sparse matrix
