@@ -307,17 +307,17 @@ product as a short vector of *latent factors* — a compact numeric "taste profi
 — and predicts a household's interest in a product by how closely the two vectors
 line up. In the implementation, observed purchase counts are scaled by alpha
 before fitting, while unobserved pairs retain the library's default background
-confidence. The method learns a low-dimensional household vector x_u and product
-vector y_i by minimizing
+confidence. The method learns a low-dimensional household vector $\mathbf{x}_u$ and
+product vector $\mathbf{y}_i$ by minimizing
 
-L = sum_ui c_ui (p_ui - x_u^T y_i)^2 + lambda (sum_u ||x_u||^2 + sum_i ||y_i||^2).
+$$L=\sum_{u,i} c_{ui}\,(p_{ui}-\mathbf{x}_u^{\top}\mathbf{y}_i)^2+\lambda\left(\sum_u \|\mathbf{x}_u\|^2+\sum_i \|\mathbf{y}_i\|^2\right)$$
 
 Holding product vectors fixed makes the objective a regularized least-squares
 problem for each household; holding household vectors fixed gives the
 corresponding product update. Alternating these steps scales to the sparse matrix
 without sampling unobserved pairs. Recommendation scores are dot products
-x_u^T y_i. The five highest-scoring products in the fixed candidate set are
-returned. Previously purchased products remain eligible (exclude_seen=False)
+$\mathbf{x}_u^{\top}\mathbf{y}_i$. The five highest-scoring products in the fixed
+candidate set are returned. Previously purchased products remain eligible (exclude_seen=False)
 because grocery replenishment is a valid and commercially important
 recommendation; the exclude-seen condition is retained as a diagnostic, not the
 deployed task.
