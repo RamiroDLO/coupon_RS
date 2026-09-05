@@ -545,33 +545,46 @@ and concentrate recommendations, although this mechanism was not tested directly
 
 ### 6.2 Limitations and risks
 
-The panel is observational and limited to 2,500 loyalty-card households at one US
-retailer. Purchases are implicit feedback: missing interactions may reflect
-dislike, lack of awareness or exposure, lack of availability, or lack of need. The
-preliminary campaign analysis is additionally affected by logging and exposure
-bias because the retailer's previous policy determined which households received
-each campaign. Therefore, non-redemption cannot be interpreted as rejection or
-compared directly with the product-ranking metrics. The evaluation measures
-purchase prediction, not coupon incrementality. A recommended product might have
-been purchased without the coupon; offline relevance therefore cannot establish
-causal lift or profitability.
+Several limitations bound what these results can claim:
 
-The closed candidate rule excludes coupon-eligible products without training
-purchases and cannot assess true cold-item discovery. The findings are therefore
-conditional on this candidate set and the frozen K=5 include-seen protocol. The
-test period contains week 92 as an unusual high-sales week, although aggregate
-test sales are only 0.59 standard deviations above the full-period weekly mean.
-The temporal split reduces leakage, but a single test window cannot demonstrate
-stability across periods. Demographics cover 32% of households and are strongly
-non-random with respect to spend, so they were excluded. Cold-household
-performance is based on five cases and should not be generalized. Coverage
-measures exposure breadth but not diversity within a household's list, novelty,
-benefit distribution, margin, stock availability or coupon cost. The validation
-window (five weeks) and the test window (eighteen weeks) also differ in length, so
-validation and test scores are not directly comparable; validation was used only
-to rank configurations, not to estimate test performance. Finally, the confidence
-intervals capture sampling noise on this one panel only; they say nothing about
-how the results would hold across other periods, retailers or populations.
+- **One panel, one retailer.** The data is 2,500 loyalty-card households at a
+  single US grocer, observed rather than experimented on, so the results may not
+  carry to other retailers or shopper populations.
+- **A non-purchase is not a "no".** Purchases are implicit feedback: a product a
+  household never bought may simply have gone unseen, been out of stock, or not
+  been needed — not disliked.
+- **The campaign figures carry the retailer's own bias.** The §2.4 context numbers
+  (12% redemption rate, 2.5× category over-spend) come from campaigns where the
+  retailer chose who to contact, so a non-redemption cannot be read as a rejection
+  and those figures cannot be compared directly with the product-ranking metrics.
+- **This is prediction, not causation.** The evaluation measures whether a
+  household later buys a product, not whether the *coupon* caused the purchase. A
+  recommended product might have been bought anyway, so the results cannot
+  establish incremental sales (extra sales caused by the coupon) or profitability.
+- **No true new-product discovery.** The candidate set excludes coupon-eligible
+  products that no household bought in training, so the study cannot test
+  recommendations of genuinely new items. All findings are conditional on this
+  menu and the K = 5 include-seen setup.
+- **One unusual test week.** Week 92 has higher-than-normal sales, but only mildly
+  so — 0.59 standard deviations above the two-year weekly average, i.e. within
+  normal fluctuation.
+- **A single test window.** The past/future split limits *leakage* (the model
+  seeing data from the period it is scored on), but one window cannot show the
+  result is stable across different periods.
+- **Demographics excluded.** The age/income/family file covers only 32% of
+  households, and those households spend far more than the rest, so using it would
+  bias the model toward that third.
+- **Cold-start is anecdotal.** Only five test households have no prior history —
+  far too few to draw conclusions from.
+- **Coverage is a narrow lens.** It measures how much of the catalogue is ever
+  recommended, not within-list variety, novelty, how benefits are distributed,
+  margin, stock availability, or coupon cost.
+- **Validation and test are not directly comparable.** The validation window is
+  five weeks and the test window eighteen, so their scores differ in scale;
+  validation was used only to rank settings, not to predict the test score.
+- **The confidence intervals are local.** They capture sampling noise within this
+  one panel only — not how the results would move across other periods, retailers
+  or populations.
 
 ### 6.3 Responsible deployment
 
