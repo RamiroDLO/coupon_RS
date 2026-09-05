@@ -282,6 +282,15 @@ returns to this.
 
 ## 4. Method — Method design and implementation (20%)
 
+This section describes the personalised model, **weighted implicit ALS**, and how
+it was configured. In plain terms, the model gives every household and every
+coupon-eligible product a short list of numbers — a position in a shared space of
+learned "taste" dimensions, worked out entirely from the record of who bought
+what — and predicts a household's interest in a product from how closely their two
+lists line up. The subsections cover the data it learns from (§4.1), the model and
+its training objective (§4.2), how its settings were chosen without touching the
+test weeks (§4.3), and the implementation (§4.4).
+
 ### 4.1 Product-level interaction representation
 
 All models learn from purchases in weeks 1–79 only. After filtering to
