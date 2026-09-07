@@ -39,12 +39,12 @@ from scipy.sparse import csr_matrix
 from sklearn.preprocessing import normalize
 from implicit.als import AlternatingLeastSquares
 
-from .config import (
+from src.config import (
     TRAIN_WEEKS, TEST_WEEKS, K, SEED,
     ALS_DIM, ALS_ALPHA, ALS_REG,
 )
-from .data_loader import day_range_for_weeks
-from .eval_harness import (
+from src.data_loader import day_range_for_weeks
+from src.eval_harness import (
     active_campaigns_in_test,
     recall_at_k,
     ndcg_at_k,

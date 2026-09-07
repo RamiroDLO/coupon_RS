@@ -33,7 +33,7 @@ import pandas as pd
 from scipy.sparse import csr_matrix
 from implicit.als import AlternatingLeastSquares
 
-from .config import K, TRAIN_WEEKS, RFM_QUANTILES, ALS_DIM, ALS_ALPHA, ALS_REG, SEED
+from src.config import K, TRAIN_WEEKS, RFM_QUANTILES, ALS_DIM, ALS_ALPHA, ALS_REG, SEED
 
 
 # ===========================================================================

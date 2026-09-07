@@ -168,6 +168,7 @@ def main() -> None:
 
     repeat_buy = select_baseline(baseline_rows, "repeat_buy")
     popularity = select_baseline(baseline_rows, "popularity")
+    item_knn = select_baseline(baseline_rows, "item_knn")
 
     als_test_rows = [
         row for row in als_rows
@@ -240,6 +241,7 @@ manually.
 | Repeat-buy | {fmt(repeat_recall)} | [{fmt(as_float(repeat_buy, "recall_lo"))}, {fmt(as_float(repeat_buy, "recall_hi"))}] | {fmt(repeat_ndcg)} | [{fmt(as_float(repeat_buy, "ndcg_lo"))}, {fmt(as_float(repeat_buy, "ndcg_hi"))}] | {fmt(as_float(repeat_buy, "hit_rate"))} | {fmt(as_float(repeat_buy, "coverage"))} |
 | Popularity | {fmt(as_float(popularity, "recall"))} | [{fmt(as_float(popularity, "recall_lo"))}, {fmt(as_float(popularity, "recall_hi"))}] | {fmt(as_float(popularity, "ndcg"))} | [{fmt(as_float(popularity, "ndcg_lo"))}, {fmt(as_float(popularity, "ndcg_hi"))}] | {fmt(as_float(popularity, "hit_rate"))} | {fmt(as_float(popularity, "coverage"))} |
 | ALS | {fmt(als_recall)} | [{fmt(as_float(als, "recall_lo"))}, {fmt(as_float(als, "recall_hi"))}] | {fmt(als_ndcg)} | [{fmt(as_float(als, "ndcg_lo"))}, {fmt(as_float(als, "ndcg_hi"))}] | {fmt(as_float(als, "hitrate_at_5"))} | {fmt(as_float(als, "coverage"))} |
+| Item-kNN | {fmt(as_float(item_knn, "recall"))} | [{fmt(as_float(item_knn, "recall_lo"))}, {fmt(as_float(item_knn, "recall_hi"))}] | {fmt(as_float(item_knn, "ndcg"))} | [{fmt(as_float(item_knn, "ndcg_lo"))}, {fmt(as_float(item_knn, "ndcg_hi"))}] | {fmt(as_float(item_knn, "hit_rate"))} | {fmt(as_float(item_knn, "coverage"))} |
 
 ALS configuration: factors={als["factors"]}, alpha={als["alpha"]},
 regularization={als["regularization"]}, iterations={als["iterations"]}.
@@ -254,6 +256,7 @@ Relative to repeat-buy, ALS is {recall_gap:.1%} lower in Recall@5 and
 | Repeat-buy | {fmt(as_float(repeat_buy, "recall_light"))} | {fmt(as_float(repeat_buy, "recall_mid"))} | {fmt(as_float(repeat_buy, "recall_heavy"))} | {fmt(as_float(repeat_buy, "warm_recall"))} | {fmt(as_float(repeat_buy, "cold_recall"))} |
 | Popularity | {fmt(as_float(popularity, "recall_light"))} | {fmt(as_float(popularity, "recall_mid"))} | {fmt(as_float(popularity, "recall_heavy"))} | {fmt(as_float(popularity, "warm_recall"))} | {fmt(as_float(popularity, "cold_recall"))} |
 | ALS | {fmt(as_float(als, "recall_light"))} | {fmt(as_float(als, "recall_mid"))} | {fmt(as_float(als, "recall_heavy"))} | {fmt(as_float(als, "warm_recall"))} | {fmt(as_float(als, "cold_recall"))} |
+| Item-kNN | {fmt(as_float(item_knn, "recall_light"))} | {fmt(as_float(item_knn, "recall_mid"))} | {fmt(as_float(item_knn, "recall_heavy"))} | {fmt(as_float(item_knn, "warm_recall"))} | {fmt(as_float(item_knn, "cold_recall"))} |
 
 Cold-start results must be interpreted cautiously because the final evaluation
 contains only {n_cold_eval:,} evaluated households without training history.
@@ -300,7 +303,9 @@ outcomes rather than purchases alone.
 
 ## Future-work links
 
-- Test BPR or EASE to model personalised ranking and repeat-purchase structure.
+- Item-kNN (cosine, top-50 neighbours) is already tested above; test EASE next
+  (regularised item-item weights) on a reduced candidate set, and BPR for
+  personalised ranking.
 - Test a LightFM hybrid with household, product and contextual features.
 - Use rolling temporal evaluation rather than a single validation/test split.
 - Add diversity, novelty and benefit-distribution measures.

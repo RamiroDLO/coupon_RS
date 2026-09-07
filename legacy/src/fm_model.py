@@ -31,7 +31,7 @@ import torch
 from torch import nn
 from torch.utils.data import DataLoader, TensorDataset
 
-from .config import SEED, K, TRAIN_WEEKS
+from src.config import SEED, K, TRAIN_WEEKS
 
 
 # ---------------------------------------------------------------------------
@@ -431,7 +431,7 @@ def fm_recommendations(
 # ===========================================================================
 # Campaign-level causal features (display + mailer rates from causal_data.csv)
 # ===========================================================================
-from .config import DATA_DIR  # for load_causal_data_slim
+from src.config import DATA_DIR  # for load_causal_data_slim
 
 # 1 week ≈ 7 days; used to convert campaign day ranges to week ranges
 DAYS_PER_WEEK = 7

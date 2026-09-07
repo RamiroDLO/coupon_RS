@@ -19,13 +19,13 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 import pandas as pd
 
 from src.config import ARTIFACTS_DIR, K, SEED
 from src.data_loader import load_core
-from src.study2 import (
+from legacy.src.study2 import (
     build_redemption_task,
     evaluate_coupons,
     format_coupon_results,

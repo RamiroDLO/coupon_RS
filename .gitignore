@@ -33,3 +33,6 @@ _to_delete/
 
 # Claude Code — local settings (machine-specific paths)
 .claude/
+
+# Claude Code — personal local plugin, not a team tool
+claude-plain-english-skill/
