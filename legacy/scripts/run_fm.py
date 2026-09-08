@@ -18,7 +18,7 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 import pandas as pd
 
@@ -30,8 +30,8 @@ from src.eval_harness import (
     evaluate,
     format_results,
 )
-from src.fm_model import compute_campaign_causal_features
-from src.fm_model import (
+from legacy.src.fm_model import compute_campaign_causal_features
+from legacy.src.fm_model import (
     build_field_index_maps,
     build_training_examples,
     train_fm,

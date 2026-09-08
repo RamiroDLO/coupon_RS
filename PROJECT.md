@@ -17,16 +17,20 @@ to offer a coupon on, and checks those picks against what the household actually
 Everything for this version lives in:
 
 - `notebooks/01_eda.ipynb` — data exploration
-- `src/product_reco.py` — the baselines and the scoring
-- `scripts/run_baselines.py` — runs and scores every baseline
+- `src/product_reco.py` — task builder, evaluator, and every baseline (incl. item-kNN)
+- `src/als_model.py` — weighted implicit ALS
+- `scripts/run_baselines.py`, `scripts/run_als_test.py` (+ their `*_validation.py`
+  counterparts) — run and score every model, writing the CSVs the report and
+  `scripts/run_responsible_use_summary.py` read from
+- `report/report.md` — the graded write-up (see § 7 for the full file map)
 
 An earlier version of the project asked a different question — which *coupon
 campaigns* or *individual coupons* to send, checked against the retailer's own
-targeting and against redemptions. That code is still in the repo
-(`src/baselines.py`, `src/study2.py`, `src/fm_model.py` and their runner
-scripts) but is **not part of the current pipeline**. It is kept for reference
-and will be moved into a `legacy/` folder in one coordinated clean-up once this
-version is finished.
+targeting and against redemptions. That code has been moved into
+`legacy/src/` (`baselines.py`, `fm_model.py`, `study2.py`) and `legacy/scripts/`
+(their runners) — kept for reference, still runnable (imports point at the
+frozen `src/config.py`, `src/data_loader.py` and `src/eval_harness.py`), but
+**not part of the current pipeline**.
 
 ---
 
@@ -189,12 +193,10 @@ setting for latent-factor methods, and it lets us reconstruct the private
 TypeA logic Dunnhumby's PDF explicitly says is "outside the scope of this
 database."
 
-**Files added (no modification to Study 1 code):**
+**Files (moved into `legacy/` — see § 0):**
 ```
-src/redemption_task.py         # task builder + coupon_values + evaluate_coupons()
-src/coupon_baselines.py        # random, popularity, repeat_buy, last_category, item_knn
-src/coupon_als.py              # implicit-ALS on hh x coupon binary matrix
-scripts/run_coupon_recommender.py
+legacy/src/study2.py                    # task builder, coupon baselines, coupon-ALS, evaluator
+legacy/scripts/run_coupon_recommender.py
 ```
 Metric formulas (`recall_at_k`, `ndcg_at_k`, `bootstrap_mean_ci`) are imported
 from the frozen `src/eval_harness.py` — no metric divergence between studies.
@@ -203,7 +205,7 @@ sum of per-coupon mean line-item SALES_VALUE (see definition below).
 
 **Run:**
 ```bash
-python scripts/run_coupon_recommender.py    # writes artifacts/coupon_results.csv
+python legacy/scripts/run_coupon_recommender.py    # writes artifacts/coupon_results.csv
 ```
 
 **Task shape (locked in on first run):**
@@ -312,27 +314,45 @@ coupon_RS/
 ├── .gitignore
 ├── Data/                               # raw CSVs, gitignored
 ├── artifacts/                          # generated outputs, gitignored
-│   ├── model_results.csv               # after scripts/run_models.py
-│   ├── fm_results.csv                  # after scripts/run_fm.py
-│   └── coupon_results.csv              # after scripts/run_coupon_recommender.py
+│   ├── baseline_results.csv            # after scripts/run_baselines.py
+│   ├── als_validation_results.csv      # after scripts/run_als_validation.py
+│   ├── als_test_results.csv            # after scripts/run_als_test.py
+│   ├── responsible_use_summary.md      # after scripts/run_responsible_use_summary.py
+│   └── coupon_results*.csv             # legacy Study 2, after legacy/scripts/run_coupon_recommender.py
 ├── docs/
 │   ├── Reco_Systems_Pitch.pdf
+│   ├── dunnhumby - The Complete Journey User Guide.pdf
 │   └── EVAL_HARNESS_SOP.md             # freeze rules
 ├── eda/
 │   └── 01_EDA_Sparsity_Targeting_Signal_Data_Quality.ipynb
-├── requirements.txt                    # numpy, pandas, scipy, sklearn, implicit, torch
-├── scripts/
-│   ├── run_models.py                   # Study 1 baselines + ALS runner
-│   ├── run_fm.py                       # Study 1 FM runner (needs torch)
-│   └── run_coupon_recommender.py       # Study 2 runner
-└── src/                                # 7 modules (was 12 before consolidation)
-    ├── __init__.py
-    ├── config.py                       # FROZEN — paths, splits, K, seeds
-    ├── data_loader.py                  # CSV loaders + day_range helper
-    ├── eval_harness.py                 # FROZEN — Study 1 evaluate() lives here
-    ├── baselines.py                    # Study 1 non-FM: random/pop/RFM/demographic/last-category/ALS
-    ├── fm_model.py                     # Study 1 FM + campaign-level causal features
-    └── study2.py                       # Study 2: task, evaluator, baselines, coupon-ALS
+├── notebooks/
+│   └── 01_eda.ipynb                    # current pipeline's exploratory notebook (§2.5 of the report)
+├── report/
+│   ├── report.md                       # the graded scientific report
+│   └── figures/figure1_test_ndcg.png
+├── requirements.txt                    # numpy, pandas, scipy, scikit-learn, implicit, torch, matplotlib
+├── scripts/                            # current pipeline — product-level coupon recommendation
+│   ├── run_baselines_validation.py     # baselines on train/val weeks
+│   ├── run_baselines.py                # baselines on train/test weeks -> artifacts/baseline_results.csv
+│   ├── run_als_validation.py           # ALS hyperparameter sweep on val weeks
+│   ├── run_als_test.py                 # frozen ALS config on test weeks -> artifacts/als_test_results.csv
+│   └── run_responsible_use_summary.py  # rebuilds §6 evidence from the two CSVs above, no manual numbers
+├── src/                                # current pipeline
+│   ├── __init__.py
+│   ├── config.py                       # FROZEN — paths, splits, K, seeds
+│   ├── data_loader.py                  # CSV loaders
+│   ├── eval_harness.py                 # FROZEN — recall_at_k / ndcg_at_k / bootstrap_mean_ci
+│   ├── product_reco.py                 # task builder, evaluator, all baselines incl. item-kNN
+│   └── als_model.py                    # weighted implicit ALS (households x coupon-eligible products)
+└── legacy/                             # earlier campaign-/coupon-level formulations, kept for reference
+    ├── src/
+    │   ├── baselines.py                 # Study 1 non-FM: random/pop/RFM/demographic/last-category/ALS
+    │   ├── fm_model.py                  # Study 1 FM + campaign-level causal features
+    │   └── study2.py                    # Study 2: coupon-redemption task, baselines, coupon-ALS
+    └── scripts/
+        ├── run_models.py                # Study 1 baselines + ALS runner
+        ├── run_fm.py                    # Study 1 FM runner (needs torch)
+        └── run_coupon_recommender.py    # Study 2 runner
 ```
 
 ---
@@ -358,13 +378,16 @@ coupon_RS/
 ## 9 · Handy commands
 
 ```bash
-# From repo root — Study 1 (campaign recommendation)
-python scripts/run_baselines.py                  # baselines only
-python scripts/run_models.py                     # baselines + ALS + segment_demographic
-python scripts/run_fm.py                         # PyTorch FM (needs local `pip install torch`)
+# From repo root — current pipeline (product-level coupon recommendation, the report's study)
+python scripts/run_baselines.py                  # 8 baselines incl. item-kNN -> artifacts/baseline_results.csv
+python scripts/run_als_validation.py             # ALS hyperparameter sweep on validation weeks
+python scripts/run_als_test.py                   # frozen ALS config on test weeks -> artifacts/als_test_results.csv
+python scripts/run_responsible_use_summary.py    # regenerates artifacts/responsible_use_summary.md
 
-# From repo root — Study 2 (personalised COUPON_UPC redemption)
-python scripts/run_coupon_recommender.py        # baselines + ALS on coupons
+# From repo root — legacy (campaign- and coupon-level formulations, not part of the report)
+python legacy/scripts/run_models.py              # Study 1 baselines + ALS + segment_demographic
+python legacy/scripts/run_fm.py                  # PyTorch FM (needs local `pip install torch`)
+python legacy/scripts/run_coupon_recommender.py  # Study 2 baselines + ALS on coupons
 
 # Sanity
 python -c "from src.data_loader import load_core; d = load_core(); print({k: len(v) for k, v in d.items()})"

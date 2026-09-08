@@ -24,6 +24,8 @@ from dataclasses import dataclass, field
 
 import numpy as np
 import pandas as pd
+from scipy.sparse import csr_matrix
+from sklearn.preprocessing import normalize
 
 from .config import TRAIN_WEEKS, TEST_WEEKS, K, SEED
 from .data_loader import load_purchases, load_product, load_coupon
@@ -381,6 +383,82 @@ def last_category_baseline(task: PurchaseTask, k: int = K, exclude_seen: bool = 
     return _to_frame(task, top_by_hh, k)
 
 
+def _build_item_binary_matrix(task: PurchaseTask) -> tuple[csr_matrix, dict[int, int]]:
+    """Binary household x candidate-product training matrix, columns ordered
+    like `task.candidate_products`. Built from `hh_train_products`, which
+    already restricts to candidate products bought in training."""
+    prod_idx = {p: i for i, p in enumerate(task.candidate_products)}
+    households = sorted(task.hh_train_products.keys())
+    hh_idx = {h: i for i, h in enumerate(households)}
+    rows, cols = [], []
+    for h, prods in task.hh_train_products.items():
+        hi = hh_idx[h]
+        for p in prods:
+            rows.append(hi)
+            cols.append(prod_idx[p])
+    data = np.ones(len(rows), dtype=np.float32)
+    mat = csr_matrix((data, (rows, cols)), shape=(len(households), len(task.candidate_products)))
+    return mat, prod_idx
+
+
+def _item_item_topn_similarity(mat: csr_matrix, top_n: int, block_size: int = 2000) -> csr_matrix:
+    """Item-item cosine similarity, truncated to each item's top-N neighbours.
+
+    Computed block-by-block (rows of `item_norm`) so the dense intermediate
+    per block (block_size x n_items) stays a few hundred MB even with
+    ~39k candidate products, instead of materialising the full n_items x
+    n_items dense matrix (tens of GB).
+    """
+    n_items = mat.shape[1]
+    item_norm = normalize(mat.T, norm="l2", axis=1).tocsr()  # (n_items, n_households)
+
+    rows_out: list[int] = []
+    cols_out: list[int] = []
+    vals_out: list[float] = []
+    for start in range(0, n_items, block_size):
+        end = min(start + block_size, n_items)
+        block = item_norm[start:end] @ item_norm.T  # sparse (block, n_items)
+        block = np.asarray(block.todense(), dtype=np.float32)
+        for local_i in range(end - start):
+            block[local_i, start + local_i] = 0.0  # drop self-similarity
+        n_keep = min(top_n, n_items - 1)
+        keep = np.argpartition(-block, n_keep, axis=1)[:, :n_keep]
+        for local_i in range(end - start):
+            cand = keep[local_i]
+            vals = block[local_i, cand]
+            mask = vals > 0
+            if not mask.any():
+                continue
+            rows_out.extend([start + local_i] * int(mask.sum()))
+            cols_out.extend(cand[mask].tolist())
+            vals_out.extend(vals[mask].tolist())
+    return csr_matrix((vals_out, (rows_out, cols_out)), shape=(n_items, n_items))
+
+
+def item_knn_baseline(task: PurchaseTask, k: int = K, exclude_seen: bool = False,
+                       top_n_neighbours: int = 50) -> pd.DataFrame:
+    """Item-based collaborative filtering (Sarwar et al., 2001): rank
+    candidates by summed cosine similarity to the products a household
+    bought in training. Similarity is truncated to each product's top-N
+    neighbours so the ~39,132-product item-item matrix stays sparse."""
+    mat, prod_idx = _build_item_binary_matrix(task)
+    sim = _item_item_topn_similarity(mat, top_n=top_n_neighbours)
+
+    top_by_hh = {}
+    for hh in task.hh_eval:
+        hist = task.hh_train_freq.get(hh, [])
+        hist_idx = [prod_idx[p] for p in hist if p in prod_idx]
+        if hist_idx:
+            scores = np.asarray(sim[hist_idx].sum(axis=0)).ravel()
+            order = np.argsort(-scores)
+            ordered = [task.candidate_products[i] for i in order if scores[i] > 0]
+        else:
+            ordered = []
+        excl = hist if exclude_seen else []
+        top_by_hh[hh] = _take_k(ordered, k, excl, task.popularity)
+    return _to_frame(task, top_by_hh, k)
+
+
 BASELINES = {
     "random":         random_baseline,          # rung 1  sanity floor
     "popularity":     popularity_baseline,      # rung 2  global demand
@@ -389,6 +467,7 @@ BASELINES = {
     "wilson":         wilson_baseline,          # rung 5  uncertainty-aware
     "repeat_buy":     repeat_buy_baseline,      # +       personal purchase history (grocery standard)
     "last_category":  last_category_baseline,   # +       category-content signal
+    "item_knn":       item_knn_baseline,        # +       item-item collaborative filtering
 }
 
 

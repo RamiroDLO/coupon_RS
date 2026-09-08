@@ -7,6 +7,8 @@
 
 ## Abstract
 
+A grocery retailer sends coupon campaigns to broadly relevant shoppers but does not personalise which products it offers each household; only about 12% of targeted household–campaign pairs led to a redemption. We reframe coupon targeting as a Top-5 product-ranking problem: for each household, predict which coupon-eligible products it will buy next, under a frozen temporal split with bootstrap confidence intervals. We compare weighted implicit ALS and an item-based k-NN filter against a ladder of baselines: popularity, segment- and trend-aware rules, and a household's own repeat-purchase history. Repeat purchase wins decisively (NDCG@5 = 0.576, Recall@5 = 0.051), beating both ALS (0.347, 0.032) and item-kNN (0.345, 0.022), whose intervals overlap each other but sit below every non-personalised popularity rule. Personalisation only pays off when it uses a household's exact history; compressing that history into latent factors or a product neighbourhood does not. We recommend repeat purchase as the candidate for a controlled online evaluation, and leave latent-factor and neighbourhood models as future work pending stronger offline evidence.
+
 ## 1. Problem — Problem framing and relevance (10%)
 
 ### 1.1 The business problem
@@ -36,7 +38,7 @@ search where the customer types in what they want.
 ### 1.3 What the model learns from
 
 The only signal available is what households bought, never what they thought of a
-product. This is *implicit feedback*: a purchase is a positive signal, but the
+product. This is *implicit feedback* [9]: a purchase is a positive signal, but the
 absence of a purchase is not a negative one — the household may simply never have
 been offered the product or noticed it. The model treats "not bought" as
 *unknown*, not as *disliked*. We deliberately do not score the recommender against
@@ -198,8 +200,10 @@ has a precise meaning: it must beat the *strongest* rung, not the weakest.
 
 The course ladder runs: (1) random, (2) most-popular, (3) category- or
 segment-popular, (4) trending, (5) uncertainty-aware. We implement all five and
-add two rules that are standard in grocery: **repeat purchase** and a
-**category-content** rule.
+add three further rules: **repeat purchase** and a **category-content** rule,
+both standard in grocery, and **item-based k-nearest-neighbours** [6], to check
+that a neighbourhood method does not beat the simple rules before concluding
+they win (§5.3, §6.4).
 
 ### 3.2 The baselines
 
@@ -225,6 +229,7 @@ set used).
 | 5 | Uncertainty-aware | popularity adjusted downwards for products bought by only a handful of households, so a rarely-bought item cannot rank high on thin evidence |
 | + | Repeat purchase | the five products the household itself bought most often during training |
 | + | Category-content | products from the grocery categories the household spends the most on |
+| + | Item-kNN | products cosine-similar (top-50 neighbours) to what the household bought, per item-item collaborative filtering [6] |
 
 ### 3.3 What the baselines show
 
@@ -235,10 +240,11 @@ set used).
 | Most popular | 0.396 [0.385, 0.407] | 0.81 | <0.001 |
 | Trending | 0.389 [0.378, 0.400] | 0.80 | <0.001 |
 | Uncertainty-aware | 0.373 [0.362, 0.384] | 0.77 | <0.001 |
+| Item-kNN | 0.345 [0.333, 0.356] | 0.71 | 0.022 |
 | Category-content | 0.150 [0.141, 0.160] | 0.40 | 0.016 |
 | Random | 0.003 | 0.01 | 0.261 |
 
-Three things stand out.
+Four things stand out.
 
 **The non-personalised rungs are all the same.** Most-popular, segment-popular,
 trending and uncertainty-aware land within a whisker of each other (NDCG@5 ≈
@@ -251,6 +257,14 @@ grocery products are near-universal — almost every household buys them.
 products scores NDCG@5 0.576, with a confidence interval ([0.562, 0.589]) that
 clears every other method's, so the gain is not sampling noise. The only simple
 signal that genuinely helps is the household's own history.
+
+**Item-based collaborative filtering does not help either.** Item-kNN is
+personalised (each household's five recommendations come from products
+cosine-similar to what it bought), yet it scores below every non-personalised
+rung except category-content (NDCG@5 0.345, confidence interval entirely below
+uncertainty-aware's). Personalisation alone is not enough: it is a
+household's *own* purchase history, not a neighbourhood of similar products,
+that adds value (§5.3, §6.4 return to this with ALS).
 
 **Repeat purchase widens reach without costing relevance.** The non-personalised
 rules recommend almost the same five products to everyone (coverage below 0.001).
@@ -314,9 +328,11 @@ popularity counts, segment definitions or model parameters.
 ### 4.2 Weighted implicit ALS
 
 The advanced method is weighted implicit alternating least squares (ALS),
-following Hu, Koren and Volinsky [2]. It is the standard weighted-implicit-feedback
-factoriser for purchase data; BPR and EASE suit the same feedback type and are
-considered as alternatives in §6.4. ALS represents every household and every
+following Hu, Koren and Volinsky [2]. It belongs to the broader family of
+matrix-factorisation recommenders [8] and is the standard
+weighted-implicit-feedback factoriser for purchase data; BPR and EASE are
+alternatives for the same feedback type (§6.4), and §3–§5 compare it against
+item-based k-NN [6], a neighbourhood method. ALS represents every household and every
 product as a short vector of *latent factors* — a compact numeric "taste profile"
 — and predicts a household's interest in a product by how closely the two vectors
 line up. These factors are dimensions the model learns from shared purchase
@@ -432,7 +448,9 @@ the test window while the model may name only five.
 ### 5.2 Metrics
 
 Write $R_u$ for a household's five recommendations and $G_u$ for the candidate
-products it bought in the test weeks. The four metrics are:
+products it bought in the test weeks. The four metrics follow standard
+practice for evaluating top-K recommenders [7]: an accuracy pair, a
+per-household hit indicator, and a catalogue-level coverage check.
 
 - **Recall@5** $= |R_u \cap G_u| / |G_u|$ — the share of the household's later
   purchases the five recommendations recover.
@@ -475,6 +493,16 @@ interval [0.029, 0.034] overlaps popularity's [0.031, 0.036], so there the two a
 statistically indistinguishable. The repeat-buy Recall confidence interval [0.0482,
 0.0548] is entirely above the popularity interval [0.0311, 0.0363].
 
+Item-kNN, a neighbourhood-based collaborative-filtering method scored under
+the identical protocol, lands in the same cluster as ALS: NDCG@5 = 0.3445
+[0.3334, 0.3562], a confidence interval that overlaps ALS's almost entirely.
+The two personalised collaborative-filtering methods, one latent-factor and
+one neighbourhood-based, are statistically indistinguishable from each other
+and both trail every non-personalised popularity rung. This rules out an
+ALS-specific explanation (e.g. only four latent factors): the same result
+holds for a method that never compresses products into a shared latent
+space.
+
 <img src="figures/figure1_test_ndcg.png" alt="Figure 1. Test NDCG@5 by model (include-seen condition)." width="480" />
 
 *Figure 1. Test NDCG@5 by model (include-seen condition).*
@@ -486,6 +514,7 @@ statistically indistinguishable. The repeat-buy Recall confidence interval [0.04
 | RFM popularity | 0.0335 | 0.3968 | 0.8135 | 0.00015 |
 | Trending | 0.0319 | 0.3889 | 0.8033 | 0.00013 |
 | ALS | 0.0318 | 0.3468 | 0.7665 | 0.00437 |
+| Item-kNN | 0.0220 | 0.3445 | 0.7128 | 0.02190 |
 | Wilson | 0.0288 | 0.3728 | 0.7733 | 0.00013 |
 | Last category | 0.0115 | 0.1504 | 0.4048 | 0.0157 |
 | Random | 0.0001 | 0.0030 | 0.0123 | 0.2612 |
@@ -495,8 +524,11 @@ itself household-specific and uses a highly predictive domain property: grocery
 demand is recurrent. ALS compresses hundreds of product interactions into only
 four latent dimensions and consequently smooths away some exact product identity.
 Its coverage of 0.44% is wider than global popularity but far below repeat
-purchase (8.15%). Random has the widest coverage and essentially no relevance,
-showing why coverage must be interpreted jointly with ranking quality.
+purchase (8.15%). Item-kNN reaches even wider coverage (2.19%, five times
+ALS's) yet scores no better on NDCG@5. Extra coverage from a
+collaborative-filtering method does not by itself buy extra relevance. Random
+has the widest coverage and essentially no relevance, showing why coverage
+must be interpreted jointly with ranking quality.
 
 ### 5.4 Segment and diagnostic analysis
 
@@ -511,10 +543,18 @@ The exclude-seen diagnostic confirms that novel-item recommendation is much
 harder. Repeat purchase necessarily falls back to popularity and obtains NDCG@5 =
 0.1048; most baselines converge near the same level. ALS, run under the same
 condition, reaches NDCG@5 = 0.1095 — inside that cluster and no better than the
-simple rules. Personalisation therefore adds nothing on discovery either: ALS does
-not beat the baselines under any condition tested. Of the products the recommender
-is scored on, 61.4% are new to the household, and the repeat 38.6% is much more
-predictable.
+simple rules. A household's own history therefore adds nothing on discovery
+either: ALS does not beat the non-personalised rules here.
+
+Item-kNN is the one exception: its exclude-seen NDCG@5 = 0.1281 [0.1208,
+0.1353] clears popularity, repeat-buy, trending and Wilson (all ≤ 0.120). This
+is the only case in this study where a collaborative-filtering method beats
+every simple rule. The gain is in ranking, not in reach: its Recall@5 (0.0104) and
+coverage (0.62%) are unremarkable, so it ranks the few correct new products it
+finds higher without finding more of them, and it still trails every
+non-random rule on the deployed include-seen task (§5.3). Of the
+products the recommender is scored on, 61.4% are new to the household, and the
+repeat 38.6% is much more predictable.
 
 The exclude-seen score should be read as a lower bound on discovery quality rather
 than a true measure: offline, a recommended new product only counts as correct if
@@ -530,11 +570,15 @@ product objectives instead of forcing one ranking to serve both.
 The research question is answered negatively: under the frozen protocol, weighted
 implicit ALS does not improve Recall@5 or NDCG@5 over the strongest
 repeat-purchase baseline, and it provides less coverage. It also underperforms
-global popularity. This is an informative result rather than a failed experiment.
-The course principle that model complexity must earn its place is borne out
-empirically: a transparent rule based on exact personal history is more useful
-here than a compact latent-factor representation (each household reduced to a few
-numbers).
+global popularity. Item-based k-NN, a second and unrelated collaborative-filtering
+method scored under the same protocol (§3.3, §5.3), lands in the same
+underperforming cluster as ALS, so the result is not an artefact of the
+four-factor ALS configuration. This is an informative result
+rather than a failed experiment. The course principle that model complexity
+must earn its place is borne out empirically: a transparent rule based on
+exact personal history is more useful here than either a compact latent-factor
+representation (each household reduced to a few numbers) or an item-item
+neighbourhood model.
 
 Several mechanisms may explain the result. Grocery buying is strongly habitual at
 the level of the individual product — the exact brand and pack, or *SKU* — and
@@ -622,10 +666,17 @@ an explicit fairness review.
 Future work should separate replenishment from discovery. A two-stage system could
 retrieve recurrent products using time-decayed purchase history, add discovery
 candidates, and re-rank them to balance relevance, novelty and catalogue coverage.
-EASE [4] could model item-to-item co-purchase patterns, although its computational
-feasibility would need assessment for the 39,132-product candidate set. BPR [3]
-could optimize discovery ranking, but its negative sampling requires care because
-an unpurchased product is not necessarily disliked. LightFM [5] could incorporate
+We already tested one item-item method, cosine item-kNN [6] (§3, §5), to check
+that a neighbourhood filter does not beat the simple rules before concluding
+they win; it did not, bar the narrow discovery-only ranking edge of §5.4.
+EASE [4] is the natural next item-item method: its regularised closed-form
+weights could capture co-purchase structure cosine similarity misses. Fitting
+it over the full 39,132-product candidate set was judged infeasible on
+laptop-scale hardware; a reduced candidate set (e.g. the ~300 commodities)
+would be the practical way to test it first. BPR [3]
+could optimize discovery ranking, but its negative sampling requires care
+because an unpurchased product is not necessarily disliked. LightFM [5] could
+incorporate
 product-hierarchy features without relying on the incomplete demographic data.
 
 One smaller, low-cost improvement would strengthen the evaluation itself: a
@@ -641,16 +692,20 @@ purchases and margin net of coupon cost.
 This project reframed coupon targeting as a product-level top-five ranking problem
 and evaluated recommendations against later purchases. The reproducible pipeline
 combines a closed 39,132-product candidate set, strict temporal separation, strong
-baselines, weighted implicit ALS and relevance plus coverage metrics. Repeat
-purchase was best (NDCG@5 0.5758; Recall@5 0.0512), while ALS reached 0.3468 and
-0.0318 respectively, covered fewer products than repeat purchase, and did not
-improve on the baselines in a discovery-only (exclude-seen) condition either. The
+baselines, weighted implicit ALS, item-based k-NN and relevance plus coverage
+metrics. Repeat purchase was best (NDCG@5 0.5758; Recall@5 0.0512), while ALS
+reached 0.3468 and 0.0318 respectively and item-kNN reached 0.3445 and 0.0220.
+These two unrelated collaborative-filtering methods land in the same
+underperforming cluster, both covering fewer products than repeat purchase
+and neither improving on the baselines in a discovery-only (exclude-seen)
+condition, though item-kNN showed a narrow ranking-only edge there. The
 practical recommendation is therefore to retain the simple personalized baseline
-as the candidate for controlled online evaluation and treat latent-factor or
-hybrid models as experiments that must demonstrate incremental value. The broader
-lesson is straightforward: in recurrent grocery demand, a household's exact
-purchase history can be more valuable than a compressed "taste profile" of a few
-learned numbers.
+as the candidate for controlled online evaluation and treat latent-factor,
+neighbourhood-based or hybrid models as experiments that must demonstrate
+incremental value. The broader lesson is straightforward: in recurrent grocery
+demand, a household's exact purchase history can be more valuable than a
+compressed "taste profile" of a few learned numbers, or than a neighbourhood
+of similar products.
 
 ## Author Contributions
 
@@ -696,7 +751,8 @@ The methodology follows the HSLU *Recommender Systems* course (Dr. Guang Lu). Th
 baseline ladder, the split + candidate-set + filtering evaluation protocol, the
 weighted implicit-ALS formulation and the metric choices are taken from the
 Day 1–2 lectures and the accompanying lab notebooks; the report structure follows
-the course grading criteria.
+the course grading criteria. General recommender-systems terminology and concepts
+not specific to the course follow standard references [9, 10].
 
 ## References
 
