@@ -8,7 +8,7 @@ AI-tool-use honesty + 1-page learning reflection. **Due 28 September 2026.**
 
 ---
 
-## 0 · Current direction (August 2026)
+## 0 · Current direction (September 2026)
 
 The project recommends, for each household, a short list of grocery **products**
 to offer a coupon on, and checks those picks against what the household actually
@@ -36,17 +36,17 @@ frozen `src/config.py`, `src/data_loader.py` and `src/eval_harness.py`), but
 
 ## 1 · Where we are
 
-Progress is tracked by **phase**, not calendar days — some phases run in
-parallel, some slip. Move a phase to ✅ only when its Definition of Done is met.
+The modelling work and scientific-report draft are complete. The remaining
+work is final reproducibility and submission quality assurance.
 
 | # | Phase | Status | Definition of Done |
 |---|-------|--------|--------------------|
 | 1 | Data audit & EDA | ✅ Done | 6 audit questions answered, 5 data-quality checks passed, executive summary + limitations captured in the EDA notebook |
-| 2 | Baselines + frozen eval harness | 🚧 In progress | `scripts/run_baselines.py` runs end-to-end; `src/eval_harness.py` and `src/config.py` frozen and signed; SOP filled in |
-| 3 | Improved method (implicit ALS) | 🔜 | ALS model trained on train weeks, hyperparameters tuned on validation, scored through the frozen harness alongside baselines |
-| 4 | Beyond-accuracy analysis | 🔜 | Redemption-uplift, coverage, and stratified metrics (by activity tier / RFM quintile) computed with bootstrap CIs |
-| 5 | Pitch (4 min) | 🔜 | Deck finalised, notes rehearsed twice, group aligned on message |
-| 6 | Report (10 pages) | 🔜 | All 10 sections drafted per the outline in § 5, contribution statement + AI-use note + learning reflection appended |
+| 2 | Baselines + frozen evaluation protocol | ✅ Done | Eight baselines run through the shared product-level evaluator; protocol documented in `docs/EVAL_HARNESS_SOP.md` |
+| 3 | Improved method (implicit ALS) | ✅ Done | ALS tuned only on validation weeks 80–84 and evaluated on final test weeks 85–102 |
+| 4 | Beyond-accuracy and diagnostic analysis | ✅ Done | Coverage, activity-tier, warm/cold and include-/exclude-seen results reported with bootstrap CIs where applicable |
+| 5 | Pitch (4 min) | ✅ Done | Pitch deck prepared and presented |
+| 6 | Scientific report | 🚧 Final QA | Full draft, references, contribution statement, AI-use note and learning reflection exist; final PDF and 10-page check remain |
 
 ### Findings from Phase 1 (locked in as facts)
 
@@ -61,123 +61,86 @@ parallel, some slip. Move a phase to ✅ only when its Definition of Done is met
 
 ---
 
-## 2 · Phase 2 — Baselines + frozen eval harness
+## 2 · Completed baseline and evaluation pipeline
 
-**Goal:** by end of this phase, any recommender can be scored through one
-function, and four baselines already have results in the table.
+Every current model returns `household_key` plus `rank_1` through `rank_5` and
+is scored by `src.product_reco.evaluate(...)`. Metric formulas for Recall,
+NDCG and bootstrap confidence intervals come from `src.eval_harness.py`.
 
-### Concrete steps
-
-1. **Pull the working tree.** `src/`, `scripts/`, `docs/`, `PROJECT.md`.
-2. **Sanity-check `src/data_loader.py`** in a notebook cell — confirm dtypes
-   load cleanly and row counts match the EDA notebook.
-3. **Run the harness.** `python scripts/run_baselines.py` from repo root.
-   Expect one printed block per baseline and a CSV at
-   `artifacts/baseline_results.csv`.
-4. **Freeze `src/eval_harness.py` and `src/config.py`.** Commit both with
-   the message `freeze: eval harness and temporal split`. Fill in Owner and
-   Frozen-on-date at the top of both files and in
-   `docs/EVAL_HARNESS_SOP.md`.
-5. **Announce in the group channel.** After this, every model routes
-   through `src.eval_harness.evaluate(...)`.
-
-### What we expect to see
-
-- **Random baseline:** Recall@3 ≈ 3 / N_active × 3 ≈ 20–30 %. Sanity floor.
-- **Popularity baseline:** ~30–40 % on Recall@3. Beats random by a lot.
-- **Segment-popularity baseline:** ~35–45 % on Recall@3. The one to beat.
-- **Last-category baseline:** ~35–45 %. May or may not beat segment-pop —
-  either way is a real result.
-- **Coverage:** popularity ≈ 3 / N_active (very low). Segment-pop meaningfully
-  higher because different segments get different lists.
-- **Redemption uplift ratio:** noisy on 2,500 households, likely wide CIs.
-
-### Definition of Done
-
-- `scripts/run_baselines.py` runs end-to-end without errors.
-- `artifacts/baseline_results.csv` exists with one row per baseline.
-- `src/eval_harness.py` and `src/config.py` are committed as frozen.
-- `docs/EVAL_HARNESS_SOP.md` shows Owner and Frozen date at the top.
-- Team channel message: _"Harness frozen. Improved-method phase can start."_
+The baseline ladder is random, popularity, RFM segment-popularity, trending,
+Wilson uncertainty-aware popularity, repeat-buy, last-category and item-kNN.
+The main comparison uses the include-seen replenishment condition; exclude-seen
+is a separate discovery diagnostic.
 
 ---
 
-## 3 · Phase 3 preview — improved method
+## 3 · Completed improved method — weighted implicit ALS
 
-**Primary:** weighted implicit ALS via the `implicit` library.
-`household × commodity` log-spend matrix, dim=64, alpha=40, reg=0.01 (defaults
-in `src/config.py`; treat as starting point, tune on validation weeks 92–96).
+Weighted implicit ALS uses the household × coupon-eligible-product interaction
+matrix. Hyperparameters were selected on validation weeks 80–84 using NDCG@5:
+4 factors, alpha 5.0, regularisation 0.1 and 10 iterations. The frozen
+configuration was then evaluated once on test weeks 85–102.
 
-Rank campaigns by average predicted score over covered commodities (same
-`campaign → coupon → product → commodity` join used in the last-category
-baseline).
-
-**Stretch:** LightFM hybrid using the product hierarchy
-(department + commodity) as side features. Only if ALS is running clean.
-
-**All models route through the frozen harness.**
+Repeat-buy outperformed ALS on the final test. This negative result is retained
+as the honest scientific conclusion; LightFM, BPR and EASE are future work, not
+requirements for the final submission.
 
 ---
 
-## 4 · Phase 4 preview — beyond-accuracy analysis
+## 4 · Completed analysis
 
-- **Redemption-uplift matched-vs-unmatched** analysis, with bootstrap 95 % CIs.
-  Base rate is 0.27 % — expect wide bands. Report either way.
-- **Stratified metrics** by household activity tier (cold / mid / heavy) and
-  by RFM quintile — 3× more numbers, same eval function.
-- **Category coverage & intra-list diversity** as the beyond-accuracy story.
-- Optional: **difficulty-adjusted metric** — weight each recommendation error
-  by 1 / campaign_lift so beating the retailer on a hard campaign counts more.
+- Final relevance comparison: NDCG@5, Recall@5 and Hit Rate@5.
+- Beyond-accuracy comparison: catalogue coverage.
+- Diagnostics: light/mid/heavy activity tiers, warm/cold households and
+  include-seen versus exclude-seen.
+- Responsible-use conclusion: predicting purchases is not evidence that a
+  coupon causes incremental purchases or revenue; deployment requires an A/B
+  test and operational, privacy and fairness controls.
 
 ---
 
 ## 5 · Report outline (10 pages, single column)
 
-Target section budget:
+The report follows the grading criteria directly. Final pagination will be
+confirmed when the PDF is generated.
 
 | Section | Pages | Notes |
 |---------|-------|-------|
-| 1. Introduction & problem framing | 0.75 | Target user (CM), business why (~70 % waste), scope |
-| 2. Dataset & feedback signals | 1.00 | Panel description, tables, Phase 1 findings 1–6 |
-| 3. Related work (light) | 0.50 | RFM history, implicit ALS, LightFM/FM lineage |
-| 4. Method | 2.00 | Baselines, ALS, hybrid (if any), architecture diagram |
-| 5. Evaluation protocol | 1.00 | Split, candidate set, ground truth, metrics, harness freeze |
-| 6. Results & analysis | 2.00 | Main table (CIs), stratified table, coverage/diversity plots |
-| 7. Beyond-accuracy discussion | 1.00 | Money-metric proxy, uplift interpretation, difficulty-adjusted |
-| 8. Limitations & responsible use | 1.00 | Small panel, proxy-not-causal, fairness caveats |
-| 9. Discussion & future work | 0.50 | A/B test as the honest next step, LightFM if deferred |
-| 10. Conclusion | 0.25 | Two-line landing |
+| 1. Problem | 0.75 | User, business motivation, task, research question and scope |
+| 2. Dataset | 1.50 | Feedback signal, cleaning, sparsity, design implications and reproducibility |
+| 3. Baseline | 1.25 | Baseline ladder, results and strongest bar to clear |
+| 4. Method | 1.50 | Product representation, weighted implicit ALS, validation and implementation |
+| 5. Evaluation | 2.25 | Frozen protocol, metrics, final results and diagnostics |
+| 6. Discussion, limitations and responsible use | 2.25 | Interpretation, limitations, deployment and future work |
+| 7. Conclusion | 0.50 | Final result and practical recommendation |
 
 Plus (outside the 10 pages): contribution statement, honest AI-tool-use
 report, 1-page learning reflection.
 
 ---
 
-## 6 · Still missing / open decisions
+## 6 · Remaining work before submission
 
-### Blocking (decide before freezing the harness)
-- [ ] **Owner of the frozen harness** — the person who signs the SOP.
-- [ ] **Baseline of record** — RFM segment popularity is the default; confirm.
-- [ ] **Author sections** — who writes what in the 10-page report.
-
-### Phase 3 (improved-method) decisions
-- [ ] Build the LightFM hybrid or defer to future work?
-- [ ] Validation-set metric driving ALS hyperparameter choice — Recall@3 or NDCG@3?
-
-### Phase 4 (analysis) decisions
-- [ ] Time-series 3-fold CV or single split? (Recommended: single split for
-      block week, add CV in the report's robustness section.)
-- [ ] Implement the difficulty-adjusted metric or leave as future work?
-
-### Not-yet-scheduled
-- [ ] **Contribution statement template** — one paragraph per team member.
-- [ ] **AI-tool-use honesty note** — list of tools used, what for.
-- [ ] **1-page learning reflection** — each member's own.
-- [ ] **Report bibliography** — decide citation style, aim for ~15 references.
+- [x] Evaluation protocol updated for the final product-level Top-5 task.
+- [x] Baseline of record confirmed: repeat-buy.
+- [x] ALS model selected on validation and scored on final test.
+- [x] Author contributions written for all four members.
+- [x] Honest AI-tool-use statement added.
+- [x] Learning reflection drafted.
+- [x] Bibliography added.
+- [ ] Re-run the four current-pipeline commands from a clean environment and
+      verify every reported number against the regenerated artifacts.
+- [ ] Produce the final single-column PDF and verify that the scientific report
+      does not exceed 10 pages.
+- [ ] Confirm whether the learning reflection should be collective or individual.
+- [ ] Complete the final editorial and visual consistency review.
 
 ---
 
-## 6b · Study 2 — personalised COUPON_UPC recommendation
+## 6b · Legacy exploratory Study 2 — personalised COUPON_UPC recommendation
+
+> Historical context only. This study is retained under `legacy/` and is not
+> part of the final report, final results or current evaluation protocol.
 
 **Task.** For every household, predict the top-K individual coupons
 (`COUPON_UPC`, ~1,135 in total) they will *redeem* in the test window.
@@ -285,23 +248,9 @@ uplift — the same honest framing as Study 1's redemption_uplift.
    ALS's job is to *match* the right baseline — not to beat it — while
    giving us the stress test that confirms the baseline isn't a coincidence.
 
-**How Study 2 slots into the 10-page report.** Method (§4), Evaluation (§5),
-Results (§6) each get one extra paragraph or sub-table contrasting the two
-formulations. Beyond-accuracy (§7) gains the "grocery-habit vs
-retailer-blanket" comparison. Limitations (§8) picks up the sparsity note.
-The two studies together are the sophisticated framing this repo now
-supports — few capstones make the campaign-vs-redemption distinction
-explicit.
-
-**Open decisions specific to Study 2:**
-- [ ] Confirm `last_category` as Study 2 winner of record (Recall@3 = 0.200,
-      disjoint CIs vs every other model). `repeat_buy` is the honest
-      strong-baseline label.
-- [ ] Report `als_coupon` with `exclude_seen=False` (matches repeat-buy
-      story) or add both variants? Current runner reports both.
-- [ ] `expected_revenue_at_k` uses per-coupon MEAN line-item value on train
-      as the weight. Alternatives: median (more robust to product-mix outliers),
-      or coupon face value inferred from COUPON_DISC in transactions.
+**Why it is retained.** It records an earlier task formulation and the evidence
+that motivated the final product-level framing. No open decision in this legacy
+study blocks the final submission.
 
 ---
 
@@ -359,17 +308,23 @@ coupon_RS/
 
 ## 8 · Key architectural decisions (locked in)
 
-- **Candidate set = active campaigns in test window.** ~30 items, closed
-  universe, no negative-sampling debate.
-- **Ground truth = retailer's own campaign assignment** (`campaign_table.csv`).
-  Proxy for "correct target," acknowledged.
-- **Temporal split, never random split** — weeks 1–91 / 92–96 / 97–102.
+- **Task = Top-5 product recommendation.** Recommend coupon-eligible products
+  that a household is likely to purchase in the later test window.
+- **Candidate set = coupon-eligible products purchased during training.**
+  The final test task contains 39,132 candidates.
+- **Ground truth = later purchases.** Each household is evaluated against the
+  candidate products it actually purchased in the evaluation window.
+- **Temporal split, never random split** — train weeks 1–79, validation 80–84
+  and final test 85–102.
 - **`household_key` is lowercase; every other ID is UPPERCASE.** Reflects the
   raw CSV schema; do not rename.
-- **Do not modify `src/eval_harness.py` or `src/config.py` after freeze** —
-  escalate via `docs/EVAL_HARNESS_SOP.md` instead.
-- **Bootstrap CIs on Recall and NDCG** are the default; wide bands on money
-  metric are expected and reported.
+- **Do not modify the frozen protocol** in `src/config.py`, the metric helpers
+  in `src/eval_harness.py`, or the task/evaluation definitions in
+  `src/product_reco.py` without the process in `docs/EVAL_HARNESS_SOP.md`.
+- **NDCG@5 is the headline metric.** Recall@5, Hit Rate@5 and coverage provide
+  complementary evidence; Recall and NDCG use household-level bootstrap CIs.
+- **Include-seen is the main replenishment condition.** Exclude-seen is a
+  separate discovery diagnostic.
 - **`hh_demographic` is NOT used as a model feature** in the main study
   (non-random 32 % coverage). Kept for post-hoc subgroup analysis only.
 
