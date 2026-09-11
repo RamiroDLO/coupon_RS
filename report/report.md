@@ -503,9 +503,7 @@ ALS-specific explanation (e.g. only four latent factors): the same result
 holds for a method that never compresses products into a shared latent
 space.
 
-<img src="figures/figure1_test_ndcg.png" alt="Figure 1. Test NDCG@5 by model (include-seen condition)." width="480" />
-
-*Figure 1. Test NDCG@5 by model (include-seen condition).*
+![Test NDCG@5 by model under the include-seen condition.](figures/figure1_test_ndcg.png){ width=48% }
 
 | Model | Recall@5 | NDCG@5 | Hit Rate@5 | Coverage |
 |---|---|---|---|---|
