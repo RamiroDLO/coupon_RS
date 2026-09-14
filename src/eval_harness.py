@@ -1,27 +1,40 @@
 """
 ========================================================================
-FROZEN EVALUATION HARNESS  —  Dunnhumby coupon-campaign recommender
+EVALUATION HELPERS: Dunnhumby coupon recommender
 ========================================================================
 
+This module holds two generations of evaluation code.
+
+1. recall_at_k, ndcg_at_k and bootstrap_mean_ci: generic metric primitives,
+   frozen and current. The final product-level study uses these formulas
+   directly. src/product_reco.py imports them and builds its own task and
+   evaluator around them. See docs/EVAL_HARNESS_SOP.md for the current
+   frozen protocol.
+
+2. active_campaigns_in_test, build_ground_truth, redemption_uplift,
+   evaluate() and format_results(): the original campaign-level evaluator
+   (contract: rank_1..rank_3 are CAMPAIGN ids). This is legacy code, not
+   part of the final study. legacy/src/baselines.py, legacy/src/fm_model.py
+   and legacy/src/study2.py still import it, so it stays.
+
 Rules (see docs/EVAL_HARNESS_SOP.md for the full policy):
-    1. This file is frozen at the start of modelling work and DOES NOT
-       CHANGE while models are being compared.
-    2. Every model (baseline, ALS, LightFM, hybrid, whatever) is scored
-       through `evaluate()` — no local variants.
-    3. If a genuine bug is found after freeze, the fix is escalated to the
-       team, ALL prior models are re-scored, and the change is logged in
+    1. The metric primitives above do not change while models are compared.
+    2. Every current-pipeline model is scored through
+       src.product_reco.evaluate(), which imports its formulas from here.
+    3. A bug found in the primitives after freeze goes to the team. Every
+       prior model is re-scored, and the change is logged in
        docs/EVAL_HARNESS_SOP.md under "Change log".
 
-Model contract:
-    Every model outputs a `recs_df` with columns:
+Model contract for the legacy evaluate() below (still used by legacy/):
+    Every model outputs a recs_df with columns:
         household_key : int
         rank_1        : int   (CAMPAIGN id, highest predicted score)
         rank_2        : int   (CAMPAIGN id, next)
         rank_3        : int   (CAMPAIGN id, next)
     Rows for households with no valid recommendation may be omitted.
 
-Owner:      <team member — fill in at freeze>
-Frozen on:  <date — fill in at freeze>
+Owner:      Coupon RS team (Ramiro, Ana, Mayra and Fatima)
+Frozen on:  8 September 2026
 ========================================================================
 """
 from __future__ import annotations
